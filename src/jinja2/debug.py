@@ -1,12 +1,10 @@
 import platform
 import sys
 import typing as t
-from types import CodeType
-from types import TracebackType
+from types import CodeType, TracebackType
 
 from .exceptions import TemplateSyntaxError
-from .utils import internal_code
-from .utils import missing
+from .utils import internal_code, missing
 
 if t.TYPE_CHECKING:
     from .runtime import Context
@@ -35,9 +33,8 @@ def rewrite_traceback_stack(source: t.Optional[str] = None) -> BaseException:
         exc_value.with_traceback(None)
         # Outside of runtime, so the frame isn't executing template
         # code, but it still needs to point at the template.
-        tb = fake_traceback(
-            exc_value, None, exc_value.filename or "<unknown>", exc_value.lineno
-        )
+        tb = fake_traceback(exc_value, None, exc_value.filename or "<unknown>",
+                            exc_value.lineno)
     else:
         # Skip the frame for the render function.
         tb = tb.tb_next
@@ -74,8 +71,8 @@ def rewrite_traceback_stack(source: t.Optional[str] = None) -> BaseException:
 
 
 def fake_traceback(  # type: ignore
-    exc_value: BaseException, tb: t.Optional[TracebackType], filename: str, lineno: int
-) -> TracebackType:
+        exc_value: BaseException, tb: t.Optional[TracebackType], filename: str,
+        lineno: int) -> TracebackType:
     """Produce a new traceback object that looks like it came from the
     template source instead of the compiled code. The filename, line
     number, and location name will point to the template, and the local
@@ -102,7 +99,8 @@ def fake_traceback(  # type: ignore
         "__jinja_exception__": exc_value,
     }
     # Raise an exception at the correct line number.
-    code = compile("\n" * (lineno - 1) + "raise __jinja_exception__", filename, "exec")
+    code = compile("\n" * (lineno - 1) + "raise __jinja_exception__", filename,
+                   "exec")
 
     # Build a new code object that points to the template file and
     # replaces the location with a block name.
@@ -123,23 +121,23 @@ def fake_traceback(  # type: ignore
         code_args = []
 
         for attr in (
-            "argcount",
-            "posonlyargcount",  # Python 3.8
-            "kwonlyargcount",
-            "nlocals",
-            "stacksize",
-            "flags",
-            "code",  # codestring
-            "consts",  # constants
-            "names",
-            "varnames",
+                "argcount",
+                "posonlyargcount",  # Python 3.8
+                "kwonlyargcount",
+                "nlocals",
+                "stacksize",
+                "flags",
+                "code",  # codestring
+                "consts",  # constants
+                "names",
+                "varnames",
             ("filename", filename),
             ("name", location),
-            "firstlineno",
-            "lnotab",
-            "freevars",
-            "cellvars",
-            "linetable",  # Python 3.10
+                "firstlineno",
+                "lnotab",
+                "freevars",
+                "cellvars",
+                "linetable",  # Python 3.10
         ):
             if isinstance(attr, tuple):
                 # Replace with given value.
@@ -167,7 +165,8 @@ def fake_traceback(  # type: ignore
         return sys.exc_info()[2].tb_next  # type: ignore
 
 
-def get_template_locals(real_locals: t.Mapping[str, t.Any]) -> t.Dict[str, t.Any]:
+def get_template_locals(
+        real_locals: t.Mapping[str, t.Any]) -> t.Dict[str, t.Any]:
     """Based on the runtime locals, get the context that would be
     available at that point in the template.
     """
@@ -196,7 +195,7 @@ def get_template_locals(real_locals: t.Mapping[str, t.Any]) -> t.Dict[str, t.Any
         except ValueError:
             continue
 
-        cur_depth = local_overrides.get(name, (-1,))[0]
+        cur_depth = local_overrides.get(name, (-1, ))[0]
 
         if cur_depth < depth:
             local_overrides[name] = (depth, value)
@@ -213,12 +212,10 @@ def get_template_locals(real_locals: t.Mapping[str, t.Any]) -> t.Dict[str, t.Any
 
 if sys.version_info >= (3, 7):
     # tb_next is directly assignable as of Python 3.7
-    def tb_set_next(
-        tb: TracebackType, tb_next: t.Optional[TracebackType]
-    ) -> TracebackType:
+    def tb_set_next(tb: TracebackType,
+                    tb_next: t.Optional[TracebackType]) -> TracebackType:
         tb.tb_next = tb_next
         return tb
-
 
 elif platform.python_implementation() == "PyPy":
     # PyPy might have special support, and won't work with ctypes.
@@ -226,17 +223,15 @@ elif platform.python_implementation() == "PyPy":
         import tputil  # type: ignore
     except ImportError:
         # Without tproxy support, use the original traceback.
-        def tb_set_next(
-            tb: TracebackType, tb_next: t.Optional[TracebackType]
-        ) -> TracebackType:
+        def tb_set_next(tb: TracebackType,
+                        tb_next: t.Optional[TracebackType]) -> TracebackType:
             return tb
 
     else:
         # With tproxy support, create a proxy around the traceback that
         # returns the new tb_next.
-        def tb_set_next(
-            tb: TracebackType, tb_next: t.Optional[TracebackType]
-        ) -> TracebackType:
+        def tb_set_next(tb: TracebackType,
+                        tb_next: t.Optional[TracebackType]) -> TracebackType:
             def controller(op):  # type: ignore
                 if op.opname == "__getattribute__" and op.args[0] == "tb_next":
                     return tb_next
@@ -244,7 +239,6 @@ elif platform.python_implementation() == "PyPy":
                 return op.delegate()
 
             return tputil.make_proxy(controller, obj=tb)  # type: ignore
-
 
 else:
     # Use ctypes to assign tb_next at the C level since it's read-only
@@ -259,9 +253,8 @@ else:
             ("tb_next", ctypes.py_object),
         ]
 
-    def tb_set_next(
-        tb: TracebackType, tb_next: t.Optional[TracebackType]
-    ) -> TracebackType:
+    def tb_set_next(tb: TracebackType,
+                    tb_next: t.Optional[TracebackType]) -> TracebackType:
         c_tb = _CTraceback.from_address(id(tb))
 
         # Clear out the old tb_next.

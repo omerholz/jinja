@@ -10,8 +10,7 @@ TEST_IDX_TEMPLATE_STR_1 = (
 TEST_IDX0_TEMPLATE_STR_1 = (
     "[{% for i in lst|reverse %}(len={{ loop.length }},"
     " revindex0={{ loop.revindex0 }}, index0={{ loop.index0 }}, val={{ i }})"
-    "{% endfor %}]"
-)
+    "{% endfor %}]")
 
 
 def test_loop_idx():
@@ -47,10 +46,10 @@ def test_loopcontext2():
 
 
 def test_iterator_not_advanced_early():
-    t = Template("{% for _, g in gs %}{{ loop.index }} {{ g|list }}\n{% endfor %}")
-    out = t.render(
-        gs=itertools.groupby([(1, "a"), (1, "b"), (2, "c"), (3, "d")], lambda x: x[0])
-    )
+    t = Template(
+        "{% for _, g in gs %}{{ loop.index }} {{ g|list }}\n{% endfor %}")
+    out = t.render(gs=itertools.groupby([(1, "a"), (1, "b"), (2, "c"), (
+        3, "d")], lambda x: x[0]))
     # groupby groups depend on the current position of the iterator. If
     # it was advanced early, the lists would appear empty.
     assert out == "1 [(1, 'a'), (1, 'b')]\n2 [(2, 'c')]\n3 [(3, 'd')]\n"
@@ -61,7 +60,6 @@ def test_mock_not_pass_arg_marker():
     values for arbitrary attrs, it should not be incorrectly identified
     as a ``pass_context`` function.
     """
-
     class Calc:
         def __getattr__(self, item):
             return object()

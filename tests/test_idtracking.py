@@ -11,9 +11,10 @@ def test_basics():
         None,
         False,
     )
-    tmpl = nodes.Template(
-        [nodes.Assign(nodes.Name("foo", "store"), nodes.Name("bar", "load")), for_loop]
-    )
+    tmpl = nodes.Template([
+        nodes.Assign(nodes.Name("foo", "store"), nodes.Name("bar", "load")),
+        for_loop
+    ])
 
     sym = symbols_for_node(tmpl)
     assert sym.refs == {
@@ -38,63 +39,56 @@ def test_basics():
 
 def test_complex():
     title_block = nodes.Block(
-        "title", [nodes.Output([nodes.TemplateData("Page Title")])], False, False
-    )
+        "title", [nodes.Output([nodes.TemplateData("Page Title")])], False,
+        False)
 
     render_title_macro = nodes.Macro(
         "render_title",
         [nodes.Name("title", "param")],
         [],
         [
-            nodes.Output(
-                [
-                    nodes.TemplateData('\n  <div class="title">\n    <h1>'),
-                    nodes.Name("title", "load"),
-                    nodes.TemplateData("</h1>\n    <p>"),
-                    nodes.Name("subtitle", "load"),
-                    nodes.TemplateData("</p>\n    "),
-                ]
-            ),
-            nodes.Assign(
-                nodes.Name("subtitle", "store"), nodes.Const("something else")
-            ),
-            nodes.Output(
-                [
-                    nodes.TemplateData("\n    <p>"),
-                    nodes.Name("subtitle", "load"),
-                    nodes.TemplateData("</p>\n  </div>\n"),
-                    nodes.If(
-                        nodes.Name("something", "load"),
-                        [
-                            nodes.Assign(
-                                nodes.Name("title_upper", "store"),
-                                nodes.Filter(
-                                    nodes.Name("title", "load"),
-                                    "upper",
-                                    [],
-                                    [],
-                                    None,
-                                    None,
-                                ),
+            nodes.Output([
+                nodes.TemplateData('\n  <div class="title">\n    <h1>'),
+                nodes.Name("title", "load"),
+                nodes.TemplateData("</h1>\n    <p>"),
+                nodes.Name("subtitle", "load"),
+                nodes.TemplateData("</p>\n    "),
+            ]),
+            nodes.Assign(nodes.Name("subtitle", "store"),
+                         nodes.Const("something else")),
+            nodes.Output([
+                nodes.TemplateData("\n    <p>"),
+                nodes.Name("subtitle", "load"),
+                nodes.TemplateData("</p>\n  </div>\n"),
+                nodes.If(
+                    nodes.Name("something", "load"),
+                    [
+                        nodes.Assign(
+                            nodes.Name("title_upper", "store"),
+                            nodes.Filter(
+                                nodes.Name("title", "load"),
+                                "upper",
+                                [],
+                                [],
+                                None,
+                                None,
                             ),
-                            nodes.Output(
-                                [
-                                    nodes.Name("title_upper", "load"),
-                                    nodes.Call(
-                                        nodes.Name("render_title", "load"),
-                                        [nodes.Const("Aha")],
-                                        [],
-                                        None,
-                                        None,
-                                    ),
-                                ]
+                        ),
+                        nodes.Output([
+                            nodes.Name("title_upper", "load"),
+                            nodes.Call(
+                                nodes.Name("render_title", "load"),
+                                [nodes.Const("Aha")],
+                                [],
+                                None,
+                                None,
                             ),
-                        ],
-                        [],
-                        [],
-                    ),
-                ]
-            ),
+                        ]),
+                    ],
+                    [],
+                    [],
+                ),
+            ]),
         ],
     )
 
@@ -102,13 +96,11 @@ def test_complex():
         nodes.Name("item", "store"),
         nodes.Name("seq", "load"),
         [
-            nodes.Output(
-                [
-                    nodes.TemplateData("\n    <li>"),
-                    nodes.Name("item", "load"),
-                    nodes.TemplateData("</li>\n    <span>"),
-                ]
-            ),
+            nodes.Output([
+                nodes.TemplateData("\n    <li>"),
+                nodes.Name("item", "load"),
+                nodes.TemplateData("</li>\n    <span>"),
+            ]),
             nodes.Include(nodes.Const("helper.html"), True, False),
             nodes.Output([nodes.TemplateData("</span>\n  ")]),
         ],
@@ -120,19 +112,17 @@ def test_complex():
     body_block = nodes.Block(
         "body",
         [
-            nodes.Output(
-                [
-                    nodes.TemplateData("\n  "),
-                    nodes.Call(
-                        nodes.Name("render_title", "load"),
-                        [nodes.Name("item", "load")],
-                        [],
-                        None,
-                        None,
-                    ),
-                    nodes.TemplateData("\n  <ul>\n  "),
-                ]
-            ),
+            nodes.Output([
+                nodes.TemplateData("\n  "),
+                nodes.Call(
+                    nodes.Name("render_title", "load"),
+                    [nodes.Name("item", "load")],
+                    [],
+                    None,
+                    None,
+                ),
+                nodes.TemplateData("\n  <ul>\n  "),
+            ]),
             for_loop,
             nodes.Output([nodes.TemplateData("\n  </ul>\n")]),
         ],
@@ -140,14 +130,12 @@ def test_complex():
         False,
     )
 
-    tmpl = nodes.Template(
-        [
-            nodes.Extends(nodes.Const("layout.html")),
-            title_block,
-            render_title_macro,
-            body_block,
-        ]
-    )
+    tmpl = nodes.Template([
+        nodes.Extends(nodes.Const("layout.html")),
+        title_block,
+        render_title_macro,
+        body_block,
+    ])
 
     tmpl_sym = symbols_for_node(tmpl)
     assert tmpl_sym.refs == {
@@ -210,19 +198,20 @@ def test_complex():
 
 
 def test_if_branching_stores():
-    tmpl = nodes.Template(
-        [
-            nodes.If(
-                nodes.Name("expression", "load"),
-                [nodes.Assign(nodes.Name("variable", "store"), nodes.Const(42))],
-                [],
-                [],
-            )
-        ]
-    )
+    tmpl = nodes.Template([
+        nodes.If(
+            nodes.Name("expression", "load"),
+            [nodes.Assign(nodes.Name("variable", "store"), nodes.Const(42))],
+            [],
+            [],
+        )
+    ])
 
     sym = symbols_for_node(tmpl)
-    assert sym.refs == {"variable": "l_0_variable", "expression": "l_0_expression"}
+    assert sym.refs == {
+        "variable": "l_0_variable",
+        "expression": "l_0_expression"
+    }
     assert sym.stores == {"variable"}
     assert sym.loads == {
         "l_0_variable": ("resolve", "variable"),
@@ -234,20 +223,21 @@ def test_if_branching_stores():
 
 
 def test_if_branching_stores_undefined():
-    tmpl = nodes.Template(
-        [
-            nodes.Assign(nodes.Name("variable", "store"), nodes.Const(23)),
-            nodes.If(
-                nodes.Name("expression", "load"),
-                [nodes.Assign(nodes.Name("variable", "store"), nodes.Const(42))],
-                [],
-                [],
-            ),
-        ]
-    )
+    tmpl = nodes.Template([
+        nodes.Assign(nodes.Name("variable", "store"), nodes.Const(23)),
+        nodes.If(
+            nodes.Name("expression", "load"),
+            [nodes.Assign(nodes.Name("variable", "store"), nodes.Const(42))],
+            [],
+            [],
+        ),
+    ])
 
     sym = symbols_for_node(tmpl)
-    assert sym.refs == {"variable": "l_0_variable", "expression": "l_0_expression"}
+    assert sym.refs == {
+        "variable": "l_0_variable",
+        "expression": "l_0_expression"
+    }
     assert sym.stores == {"variable"}
     assert sym.loads == {
         "l_0_variable": ("undefined", None),
@@ -277,8 +267,7 @@ def test_if_branching_multi_scope():
     )
 
     tmpl = nodes.Template(
-        [nodes.Assign(nodes.Name("x", "store"), nodes.Const(23)), for_loop]
-    )
+        [nodes.Assign(nodes.Name("x", "store"), nodes.Const(23)), for_loop])
 
     tmpl_sym = symbols_for_node(tmpl)
     for_sym = symbols_for_node(for_loop, tmpl_sym)

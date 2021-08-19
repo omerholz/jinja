@@ -2,13 +2,9 @@ import pytest
 from markupsafe import escape
 
 from jinja2 import Environment
-from jinja2.exceptions import SecurityError
-from jinja2.exceptions import TemplateRuntimeError
-from jinja2.exceptions import TemplateSyntaxError
+from jinja2.exceptions import SecurityError, TemplateRuntimeError, TemplateSyntaxError
 from jinja2.nodes import EvalContext
-from jinja2.sandbox import ImmutableSandboxedEnvironment
-from jinja2.sandbox import SandboxedEnvironment
-from jinja2.sandbox import unsafe
+from jinja2.sandbox import ImmutableSandboxedEnvironment, SandboxedEnvironment, unsafe
 
 
 class PrivateStuff:
@@ -37,17 +33,20 @@ class PublicStuff:
 class TestSandbox:
     def test_unsafe(self, env):
         env = SandboxedEnvironment()
-        pytest.raises(
-            SecurityError, env.from_string("{{ foo.foo() }}").render, foo=PrivateStuff()
-        )
-        assert env.from_string("{{ foo.bar() }}").render(foo=PrivateStuff()) == "23"
+        pytest.raises(SecurityError,
+                      env.from_string("{{ foo.foo() }}").render,
+                      foo=PrivateStuff())
+        assert env.from_string("{{ foo.bar() }}").render(
+            foo=PrivateStuff()) == "23"
 
-        pytest.raises(
-            SecurityError, env.from_string("{{ foo._foo() }}").render, foo=PublicStuff()
-        )
-        assert env.from_string("{{ foo.bar() }}").render(foo=PublicStuff()) == "23"
+        pytest.raises(SecurityError,
+                      env.from_string("{{ foo._foo() }}").render,
+                      foo=PublicStuff())
+        assert env.from_string("{{ foo.bar() }}").render(
+            foo=PublicStuff()) == "23"
         assert env.from_string("{{ foo.__class__ }}").render(foo=42) == ""
-        assert env.from_string("{{ foo.func_code }}").render(foo=lambda: None) == ""
+        assert env.from_string("{{ foo.func_code }}").render(
+            foo=lambda: None) == ""
         # security error comes from __class__ already.
         pytest.raises(
             SecurityError,
@@ -57,8 +56,10 @@ class TestSandbox:
 
     def test_immutable_environment(self, env):
         env = ImmutableSandboxedEnvironment()
-        pytest.raises(SecurityError, env.from_string("{{ [].append(23) }}").render)
-        pytest.raises(SecurityError, env.from_string("{{ {1:2}.clear() }}").render)
+        pytest.raises(SecurityError,
+                      env.from_string("{{ [].append(23) }}").render)
+        pytest.raises(SecurityError,
+                      env.from_string("{{ {1:2}.clear() }}").render)
 
     def test_restricted(self, env):
         env = SandboxedEnvironment()
@@ -75,20 +76,17 @@ class TestSandbox:
 
     def test_template_data(self, env):
         env = Environment(autoescape=True)
-        t = env.from_string(
-            "{% macro say_hello(name) %}"
-            "<p>Hello {{ name }}!</p>{% endmacro %}"
-            '{{ say_hello("<blink>foo</blink>") }}'
-        )
+        t = env.from_string("{% macro say_hello(name) %}"
+                            "<p>Hello {{ name }}!</p>{% endmacro %}"
+                            '{{ say_hello("<blink>foo</blink>") }}')
         escaped_out = "<p>Hello &lt;blink&gt;foo&lt;/blink&gt;!</p>"
         assert t.render() == escaped_out
         assert str(t.module) == escaped_out
         assert escape(t.module) == escaped_out
         assert t.module.say_hello("<blink>foo</blink>") == escaped_out
-        assert (
-            escape(t.module.say_hello(EvalContext(env), "<blink>foo</blink>"))
-            == escaped_out
-        )
+        assert (escape(
+            t.module.say_hello(EvalContext(env),
+                               "<blink>foo</blink>")) == escaped_out)
         assert escape(t.module.say_hello("<blink>foo</blink>")) == escaped_out
 
     def test_attr_filter(self, env):
@@ -138,12 +136,14 @@ class TestStringFormat:
 
     def test_safe_format_safety(self):
         env = SandboxedEnvironment()
-        t = env.from_string('{{ ("a{0.__class__}b{1}"|safe).format(42, "<foo>") }}')
+        t = env.from_string(
+            '{{ ("a{0.__class__}b{1}"|safe).format(42, "<foo>") }}')
         assert t.render() == "ab&lt;foo&gt;"
 
     def test_safe_format_all_okay(self):
         env = SandboxedEnvironment()
-        t = env.from_string('{{ ("a{0.foo}b{1}"|safe).format({"foo": 42}, "<foo>") }}')
+        t = env.from_string(
+            '{{ ("a{0.foo}b{1}"|safe).format({"foo": 42}, "<foo>") }}')
         assert t.render() == "a42b&lt;foo&gt;"
 
     def test_empty_braces_format(self):

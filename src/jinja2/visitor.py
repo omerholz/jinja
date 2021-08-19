@@ -30,7 +30,8 @@ class NodeVisitor:
         exists for this node.  In that case the generic visit function is
         used instead.
         """
-        return getattr(self, f"visit_{type(node).__name__}", None)  # type: ignore
+        return getattr(self, f"visit_{type(node).__name__}",
+                       None)  # type: ignore
 
     def visit(self, node: Node, *args: t.Any, **kwargs: t.Any) -> t.Any:
         """Visit a node."""
@@ -41,7 +42,8 @@ class NodeVisitor:
 
         return self.generic_visit(node, *args, **kwargs)
 
-    def generic_visit(self, node: Node, *args: t.Any, **kwargs: t.Any) -> t.Any:
+    def generic_visit(self, node: Node, *args: t.Any,
+                      **kwargs: t.Any) -> t.Any:
         """Called if no explicit visitor function exists for a node."""
         for node in node.iter_child_nodes():
             self.visit(node, *args, **kwargs)
@@ -80,7 +82,8 @@ class NodeTransformer(NodeVisitor):
                     setattr(node, field, new_node)
         return node
 
-    def visit_list(self, node: Node, *args: t.Any, **kwargs: t.Any) -> t.List[Node]:
+    def visit_list(self, node: Node, *args: t.Any,
+                   **kwargs: t.Any) -> t.List[Node]:
         """As transformers may return lists in some places this method
         can be used to enforce a list as return value.
         """

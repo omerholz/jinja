@@ -4,18 +4,15 @@ Useful when the template itself comes from an untrusted source.
 import operator
 import types
 import typing as t
-from _string import formatter_field_name_split  # type: ignore
-from collections import abc
-from collections import deque
+from collections import abc, deque
 from string import Formatter
 
-from markupsafe import EscapeFormatter
-from markupsafe import Markup
+from _string import formatter_field_name_split  # type: ignore
+from markupsafe import EscapeFormatter, Markup
 
 from .environment import Environment
 from .exceptions import SecurityError
-from .runtime import Context
-from .runtime import Undefined
+from .runtime import Context, Undefined
 
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
 
@@ -40,18 +37,16 @@ UNSAFE_ASYNC_GENERATOR_ATTRIBUTES = {"ag_code", "ag_frame"}
 _mutable_spec: t.Tuple[t.Tuple[t.Type, t.FrozenSet[str]], ...] = (
     (
         abc.MutableSet,
-        frozenset(
-            [
-                "add",
-                "clear",
-                "difference_update",
-                "discard",
-                "pop",
-                "remove",
-                "symmetric_difference_update",
-                "update",
-            ]
-        ),
+        frozenset([
+            "add",
+            "clear",
+            "difference_update",
+            "discard",
+            "pop",
+            "remove",
+            "symmetric_difference_update",
+            "update",
+        ]),
     ),
     (
         abc.MutableMapping,
@@ -63,27 +58,25 @@ _mutable_spec: t.Tuple[t.Tuple[t.Type, t.FrozenSet[str]], ...] = (
     ),
     (
         deque,
-        frozenset(
-            [
-                "append",
-                "appendleft",
-                "clear",
-                "extend",
-                "extendleft",
-                "pop",
-                "popleft",
-                "remove",
-                "rotate",
-            ]
-        ),
+        frozenset([
+            "append",
+            "appendleft",
+            "clear",
+            "extend",
+            "extendleft",
+            "pop",
+            "popleft",
+            "remove",
+            "rotate",
+        ]),
     ),
 )
 
 
 def inspect_format_method(callable: t.Callable) -> t.Optional[str]:
-    if not isinstance(
-        callable, (types.MethodType, types.BuiltinMethodType)
-    ) or callable.__name__ not in ("format", "format_map"):
+    if not isinstance(callable,
+                      (types.MethodType, types.BuiltinMethodType
+                       )) or callable.__name__ not in ("format", "format_map"):
         return None
 
     obj = callable.__self__
@@ -103,8 +96,7 @@ def safe_range(*args: int) -> range:
     if len(rng) > MAX_RANGE:
         raise OverflowError(
             "Range too big. The sandbox blocks ranges larger than"
-            f" MAX_RANGE ({MAX_RANGE})."
-        )
+            f" MAX_RANGE ({MAX_RANGE}).")
 
     return rng
 
@@ -143,17 +135,18 @@ def is_internal_attribute(obj: t.Any, attr: str) -> bool:
     elif isinstance(obj, type):
         if attr == "mro":
             return True
-    elif isinstance(obj, (types.CodeType, types.TracebackType, types.FrameType)):
+    elif isinstance(obj,
+                    (types.CodeType, types.TracebackType, types.FrameType)):
         return True
     elif isinstance(obj, types.GeneratorType):
         if attr in UNSAFE_GENERATOR_ATTRIBUTES:
             return True
-    elif hasattr(types, "CoroutineType") and isinstance(obj, types.CoroutineType):
+    elif hasattr(types, "CoroutineType") and isinstance(
+            obj, types.CoroutineType):
         if attr in UNSAFE_COROUTINE_ATTRIBUTES:
             return True
     elif hasattr(types, "AsyncGeneratorType") and isinstance(
-        obj, types.AsyncGeneratorType
-    ):
+            obj, types.AsyncGeneratorType):
         if attr in UNSAFE_ASYNC_GENERATOR_ATTRIBUTES:
             return True
     return attr.startswith("__")
@@ -271,13 +264,11 @@ class SandboxedEnvironment(Environment):
         This also recognizes the Django convention of setting
         ``func.alters_data = True``.
         """
-        return not (
-            getattr(obj, "unsafe_callable", False) or getattr(obj, "alters_data", False)
-        )
+        return not (getattr(obj, "unsafe_callable", False) or
+                    getattr(obj, "alters_data", False))
 
-    def call_binop(
-        self, context: Context, operator: str, left: t.Any, right: t.Any
-    ) -> t.Any:
+    def call_binop(self, context: Context, operator: str, left: t.Any,
+                   right: t.Any) -> t.Any:
         """For intercepted binary operator calls (:meth:`intercepted_binops`)
         this function is executed instead of the builtin operator.  This can
         be used to fine tune the behavior of certain operators.
@@ -295,9 +286,8 @@ class SandboxedEnvironment(Environment):
         """
         return self.unop_table[operator](arg)
 
-    def getitem(
-        self, obj: t.Any, argument: t.Union[str, t.Any]
-    ) -> t.Union[t.Any, Undefined]:
+    def getitem(self, obj: t.Any,
+                argument: t.Union[str, t.Any]) -> t.Union[t.Any, Undefined]:
         """Subscribe an object from sandboxed code."""
         try:
             return obj[argument]
@@ -363,10 +353,8 @@ class SandboxedEnvironment(Environment):
 
         if format_func is not None and format_func.__name__ == "format_map":
             if len(args) != 1 or kwargs:
-                raise TypeError(
-                    "format_map() takes exactly one argument"
-                    f" {len(args) + (kwargs is not None)} given"
-                )
+                raise TypeError("format_map() takes exactly one argument"
+                                f" {len(args) + (kwargs is not None)} given")
 
             kwargs = args[0]
             args = ()
@@ -411,9 +399,8 @@ class SandboxedFormatter(Formatter):
         self._env = env
         super().__init__(**kwargs)  # type: ignore
 
-    def get_field(
-        self, field_name: str, args: t.Sequence[t.Any], kwargs: t.Mapping[str, t.Any]
-    ) -> t.Tuple[t.Any, str]:
+    def get_field(self, field_name: str, args: t.Sequence[t.Any],
+                  kwargs: t.Mapping[str, t.Any]) -> t.Tuple[t.Any, str]:
         first, rest = formatter_field_name_split(field_name)
         obj = self.get_value(first, args, kwargs)
         for is_attr, i in rest:

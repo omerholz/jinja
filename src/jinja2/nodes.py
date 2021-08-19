@@ -13,6 +13,7 @@ from .utils import _PassArg
 
 if t.TYPE_CHECKING:
     import typing_extensions as te
+
     from .environment import Environment
 
 _NodeBound = t.TypeVar("_NodeBound", bound="Node")
@@ -53,7 +54,6 @@ class NodeType(type):
     """A metaclass for nodes that handles the field and attribute
     inheritance.  fields and attributes from the parent class are
     automatically forwarded to the child."""
-
     def __new__(mcs, name, bases, d):  # type: ignore
         for attr in "fields", "attributes":
             storage = []
@@ -71,9 +71,9 @@ class EvalContext:
     to it in extensions.
     """
 
-    def __init__(
-        self, environment: "Environment", template_name: t.Optional[str] = None
-    ) -> None:
+    def __init__(self,
+                 environment: "Environment",
+                 template_name: t.Optional[str] = None) -> None:
         self.environment = environment
         if callable(environment.autoescape):
             self.autoescape = environment.autoescape(template_name)
@@ -89,13 +89,13 @@ class EvalContext:
         self.__dict__.update(old)
 
 
-def get_eval_context(node: "Node", ctx: t.Optional[EvalContext]) -> EvalContext:
+def get_eval_context(node: "Node",
+                     ctx: t.Optional[EvalContext]) -> EvalContext:
     if ctx is None:
         if node.environment is None:
             raise RuntimeError(
                 "if no eval context is passed, the node must have an"
-                " attached environment."
-            )
+                " attached environment.")
         return EvalContext(node.environment)
     return ctx
 
@@ -130,11 +130,11 @@ class Node(metaclass=NodeType):
         if fields:
             if len(fields) != len(self.fields):
                 if not self.fields:
-                    raise TypeError(f"{type(self).__name__!r} takes 0 arguments")
+                    raise TypeError(
+                        f"{type(self).__name__!r} takes 0 arguments")
                 raise TypeError(
                     f"{type(self).__name__!r} takes 0 or {len(self.fields)}"
-                    f" argument{'s' if len(self.fields) != 1 else ''}"
-                )
+                    f" argument{'s' if len(self.fields) != 1 else ''}")
             for name, arg in zip(self.fields, fields):
                 setattr(self, name, arg)
         for attr in self.attributes:
@@ -154,11 +154,9 @@ class Node(metaclass=NodeType):
         should be sets or tuples of field names.
         """
         for name in self.fields:
-            if (
-                (exclude is None and only is None)
-                or (exclude is not None and name not in exclude)
-                or (only is not None and name in only)
-            ):
+            if ((exclude is None and only is None) or
+                    (exclude is not None and name not in exclude) or
+                    (only is not None and name in only)):
                 try:
                     yield name, getattr(self, name)
                 except AttributeError:
@@ -191,7 +189,8 @@ class Node(metaclass=NodeType):
         return None
 
     def find_all(
-        self, node_type: t.Union[t.Type[_NodeBound], t.Tuple[t.Type[_NodeBound], ...]]
+        self, node_type: t.Union[t.Type[_NodeBound],
+                                 t.Tuple[t.Type[_NodeBound], ...]]
     ) -> t.Iterator[_NodeBound]:
         """Find all the nodes of a given type.  If the type is a tuple,
         the check is performed for any of the tuple items.
@@ -245,7 +244,8 @@ class Node(metaclass=NodeType):
         return hash(tuple(self.iter_fields()))
 
     def __repr__(self) -> str:
-        args_str = ", ".join(f"{a}={getattr(self, a, None)!r}" for a in self.fields)
+        args_str = ", ".join(f"{a}={getattr(self, a, None)!r}"
+                             for a in self.fields)
         return f"{type(self).__name__}({args_str})"
 
     def dump(self) -> str:
@@ -295,7 +295,7 @@ class Template(Node):
     is passed to the compiler.
     """
 
-    fields = ("body",)
+    fields = ("body", )
     body: t.List[Node]
 
 
@@ -304,14 +304,14 @@ class Output(Stmt):
     This is used both for the `print` statement and the regular template data.
     """
 
-    fields = ("nodes",)
+    fields = ("nodes", )
     nodes: t.List["Expr"]
 
 
 class Extends(Stmt):
     """Represents an extends statement."""
 
-    fields = ("template",)
+    fields = ("template", )
     template: "Expr"
 
 
@@ -442,7 +442,7 @@ class FromImport(Stmt):
 class ExprStmt(Stmt):
     """A statement that evaluates an expression and discards the result."""
 
-    fields = ("node",)
+    fields = ("node", )
     node: Node
 
 
@@ -499,14 +499,14 @@ class BinExpr(Expr):
         eval_ctx = get_eval_context(self, eval_ctx)
 
         # intercepted operators cannot be folded at compile time
-        if (
-            eval_ctx.environment.sandboxed
-            and self.operator in eval_ctx.environment.intercepted_binops  # type: ignore
-        ):
+        if (eval_ctx.environment.sandboxed and self.operator
+                    in eval_ctx.environment.intercepted_binops  # type: ignore
+                ):
             raise Impossible()
         f = _binop_to_func[self.operator]
         try:
-            return f(self.left.as_const(eval_ctx), self.right.as_const(eval_ctx))
+            return f(self.left.as_const(eval_ctx),
+                     self.right.as_const(eval_ctx))
         except Exception:
             raise Impossible()
 
@@ -514,7 +514,7 @@ class BinExpr(Expr):
 class UnaryExpr(Expr):
     """Baseclass for all unary expressions."""
 
-    fields = ("node",)
+    fields = ("node", )
     node: Expr
     operator: str
     abstract = True
@@ -523,10 +523,9 @@ class UnaryExpr(Expr):
         eval_ctx = get_eval_context(self, eval_ctx)
 
         # intercepted operators cannot be folded at compile time
-        if (
-            eval_ctx.environment.sandboxed
-            and self.operator in eval_ctx.environment.intercepted_unops  # type: ignore
-        ):
+        if (eval_ctx.environment.sandboxed and self.operator
+                    in eval_ctx.environment.intercepted_unops  # type: ignore
+                ):
             raise Impossible()
         f = _uaop_to_func[self.operator]
         try:
@@ -549,7 +548,9 @@ class Name(Expr):
     ctx: str
 
     def can_assign(self) -> bool:
-        return self.name not in {"true", "false", "none", "True", "False", "None"}
+        return self.name not in {
+            "true", "false", "none", "True", "False", "None"
+        }
 
 
 class NSRef(Expr):
@@ -580,7 +581,7 @@ class Const(Literal):
     representation (objects where ``eval(repr(x)) == x`` is true).
     """
 
-    fields = ("value",)
+    fields = ("value", )
     value: t.Any
 
     def as_const(self, eval_ctx: t.Optional[EvalContext] = None) -> t.Any:
@@ -607,7 +608,7 @@ class Const(Literal):
 class TemplateData(Literal):
     """A constant template string."""
 
-    fields = ("data",)
+    fields = ("data", )
     data: str
 
     def as_const(self, eval_ctx: t.Optional[EvalContext] = None) -> str:
@@ -629,7 +630,9 @@ class Tuple(Literal):
     items: t.List[Expr]
     ctx: str
 
-    def as_const(self, eval_ctx: t.Optional[EvalContext] = None) -> t.Tuple[t.Any, ...]:
+    def as_const(
+            self,
+            eval_ctx: t.Optional[EvalContext] = None) -> t.Tuple[t.Any, ...]:
         eval_ctx = get_eval_context(self, eval_ctx)
         return tuple(x.as_const(eval_ctx) for x in self.items)
 
@@ -643,10 +646,11 @@ class Tuple(Literal):
 class List(Literal):
     """Any list literal such as ``[1, 2, 3]``"""
 
-    fields = ("items",)
+    fields = ("items", )
     items: t.List[Expr]
 
-    def as_const(self, eval_ctx: t.Optional[EvalContext] = None) -> t.List[t.Any]:
+    def as_const(self,
+                 eval_ctx: t.Optional[EvalContext] = None) -> t.List[t.Any]:
         eval_ctx = get_eval_context(self, eval_ctx)
         return [x.as_const(eval_ctx) for x in self.items]
 
@@ -656,12 +660,12 @@ class Dict(Literal):
     :class:`Pair` nodes.
     """
 
-    fields = ("items",)
+    fields = ("items", )
     items: t.List["Pair"]
 
     def as_const(
-        self, eval_ctx: t.Optional[EvalContext] = None
-    ) -> t.Dict[t.Any, t.Any]:
+            self,
+            eval_ctx: t.Optional[EvalContext] = None) -> t.Dict[t.Any, t.Any]:
         eval_ctx = get_eval_context(self, eval_ctx)
         return dict(x.as_const(eval_ctx) for x in self.items)
 
@@ -674,8 +678,8 @@ class Pair(Helper):
     value: Expr
 
     def as_const(
-        self, eval_ctx: t.Optional[EvalContext] = None
-    ) -> t.Tuple[t.Any, t.Any]:
+            self,
+            eval_ctx: t.Optional[EvalContext] = None) -> t.Tuple[t.Any, t.Any]:
         eval_ctx = get_eval_context(self, eval_ctx)
         return self.key.as_const(eval_ctx), self.value.as_const(eval_ctx)
 
@@ -687,7 +691,9 @@ class Keyword(Helper):
     key: str
     value: Expr
 
-    def as_const(self, eval_ctx: t.Optional[EvalContext] = None) -> t.Tuple[str, t.Any]:
+    def as_const(
+            self,
+            eval_ctx: t.Optional[EvalContext] = None) -> t.Tuple[str, t.Any]:
         eval_ctx = get_eval_context(self, eval_ctx)
         return self.key, self.value.as_const(eval_ctx)
 
@@ -715,7 +721,8 @@ class CondExpr(Expr):
 
 
 def args_as_const(
-    node: t.Union["_FilterTestCommon", "Call"], eval_ctx: t.Optional[EvalContext]
+    node: t.Union["_FilterTestCommon",
+                  "Call"], eval_ctx: t.Optional[EvalContext]
 ) -> t.Tuple[t.List[t.Any], t.Dict[t.Any, t.Any]]:
     args = [x.as_const(eval_ctx) for x in node.args]
     kwargs = dict(x.as_const(eval_ctx) for x in node.kwargs)
@@ -764,9 +771,8 @@ class _FilterTestCommon(Expr):
             raise Impossible()
 
         if eval_ctx.environment.is_async and (
-            getattr(func, "jinja_async_variant", False) is True
-            or inspect.iscoroutinefunction(func)
-        ):
+                getattr(func, "jinja_async_variant", False) is True or
+                inspect.iscoroutinefunction(func)):
             raise Impossible()
 
         args, kwargs = args_as_const(self, eval_ctx)
@@ -844,9 +850,8 @@ class Getitem(Expr):
         eval_ctx = get_eval_context(self, eval_ctx)
 
         try:
-            return eval_ctx.environment.getitem(
-                self.node.as_const(eval_ctx), self.arg.as_const(eval_ctx)
-            )
+            return eval_ctx.environment.getitem(self.node.as_const(eval_ctx),
+                                                self.arg.as_const(eval_ctx))
         except Exception:
             raise Impossible()
 
@@ -868,7 +873,8 @@ class Getattr(Expr):
         eval_ctx = get_eval_context(self, eval_ctx)
 
         try:
-            return eval_ctx.environment.getattr(self.node.as_const(eval_ctx), self.attr)
+            return eval_ctx.environment.getattr(self.node.as_const(eval_ctx),
+                                                self.attr)
         except Exception:
             raise Impossible()
 
@@ -899,7 +905,7 @@ class Concat(Expr):
     them to strings.
     """
 
-    fields = ("nodes",)
+    fields = ("nodes", )
     nodes: t.List[Expr]
 
     def as_const(self, eval_ctx: t.Optional[EvalContext] = None) -> str:
@@ -1033,7 +1039,7 @@ class EnvironmentAttribute(Expr):
     extensions that want to call a callback stored on the environment.
     """
 
-    fields = ("name",)
+    fields = ("name", )
     name: str
 
 
@@ -1057,7 +1063,7 @@ class ImportedName(Expr):
     compiler so there is no need to assign them to local variables.
     """
 
-    fields = ("importname",)
+    fields = ("importname", )
     importname: str
 
 
@@ -1069,20 +1075,18 @@ class InternalName(Expr):
     template and is not treated specially by the compiler.
     """
 
-    fields = ("name",)
+    fields = ("name", )
     name: str
 
     def __init__(self) -> None:
-        raise TypeError(
-            "Can't create internal names.  Use the "
-            "`free_identifier` method on a parser."
-        )
+        raise TypeError("Can't create internal names.  Use the "
+                        "`free_identifier` method on a parser.")
 
 
 class MarkSafe(Expr):
     """Mark the wrapped expression as safe (wrap it as `Markup`)."""
 
-    fields = ("expr",)
+    fields = ("expr", )
     expr: Expr
 
     def as_const(self, eval_ctx: t.Optional[EvalContext] = None) -> Markup:
@@ -1097,11 +1101,12 @@ class MarkSafeIfAutoescape(Expr):
     .. versionadded:: 2.5
     """
 
-    fields = ("expr",)
+    fields = ("expr", )
     expr: Expr
 
     def as_const(
-        self, eval_ctx: t.Optional[EvalContext] = None
+            self,
+            eval_ctx: t.Optional[EvalContext] = None
     ) -> t.Union[Markup, t.Any]:
         eval_ctx = get_eval_context(self, eval_ctx)
         if eval_ctx.volatile:
@@ -1150,7 +1155,7 @@ class Break(Stmt):
 class Scope(Stmt):
     """An artificial scope."""
 
-    fields = ("body",)
+    fields = ("body", )
     body: t.List[Node]
 
 
@@ -1182,7 +1187,7 @@ class EvalContextModifier(Stmt):
         EvalContextModifier(options=[Keyword('autoescape', Const(True))])
     """
 
-    fields = ("options",)
+    fields = ("options", )
     options: t.List[Keyword]
 
 
@@ -1192,7 +1197,7 @@ class ScopedEvalContextModifier(EvalContextModifier):
     :class:`~jinja2.nodes.EvalContext` for nodes in the :attr:`body`.
     """
 
-    fields = ("body",)
+    fields = ("body", )
     body: t.List[Node]
 
 

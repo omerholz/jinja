@@ -15,6 +15,7 @@ from .utils import LRUCache
 
 if t.TYPE_CHECKING:
     import typing_extensions as te
+
     from .environment import Environment
 
 # cache for the lexers. Exists in order to be able to have multiple
@@ -25,8 +26,8 @@ _lexer_cache: t.MutableMapping[t.Tuple, "Lexer"] = LRUCache(50)  # type: ignore
 whitespace_re = re.compile(r"\s+")
 newline_re = re.compile(r"(\r\n|\r|\n)")
 string_re = re.compile(
-    r"('([^'\\]*(?:\\.[^'\\]*)*)'" r'|"([^"\\]*(?:\\.[^"\\]*)*)")', re.S
-)
+    r"('([^'\\]*(?:\\.[^'\\]*)*)'"
+    r'|"([^"\\]*(?:\\.[^"\\]*)*)")', re.S)
 integer_re = re.compile(
     r"""
     (
@@ -144,20 +145,17 @@ operator_re = re.compile(
     f"({'|'.join(re.escape(x) for x in sorted(operators, key=lambda x: -len(x)))})"
 )
 
-ignored_tokens = frozenset(
-    [
-        TOKEN_COMMENT_BEGIN,
-        TOKEN_COMMENT,
-        TOKEN_COMMENT_END,
-        TOKEN_WHITESPACE,
-        TOKEN_LINECOMMENT_BEGIN,
-        TOKEN_LINECOMMENT_END,
-        TOKEN_LINECOMMENT,
-    ]
-)
+ignored_tokens = frozenset([
+    TOKEN_COMMENT_BEGIN,
+    TOKEN_COMMENT,
+    TOKEN_COMMENT_END,
+    TOKEN_WHITESPACE,
+    TOKEN_LINECOMMENT_BEGIN,
+    TOKEN_LINECOMMENT_END,
+    TOKEN_LINECOMMENT,
+])
 ignore_if_empty = frozenset(
-    [TOKEN_WHITESPACE, TOKEN_DATA, TOKEN_COMMENT, TOKEN_LINECOMMENT]
-)
+    [TOKEN_WHITESPACE, TOKEN_DATA, TOKEN_COMMENT, TOKEN_LINECOMMENT])
 
 
 def _describe_token_type(token_type: str) -> str:
@@ -230,21 +228,17 @@ def compile_rules(environment: "Environment") -> t.List[t.Tuple[str, str]]:
     ]
 
     if environment.line_statement_prefix is not None:
-        rules.append(
-            (
-                len(environment.line_statement_prefix),
-                TOKEN_LINESTATEMENT_BEGIN,
-                r"^[ \t\v]*" + e(environment.line_statement_prefix),
-            )
-        )
+        rules.append((
+            len(environment.line_statement_prefix),
+            TOKEN_LINESTATEMENT_BEGIN,
+            r"^[ \t\v]*" + e(environment.line_statement_prefix),
+        ))
     if environment.line_comment_prefix is not None:
-        rules.append(
-            (
-                len(environment.line_comment_prefix),
-                TOKEN_LINECOMMENT_BEGIN,
-                r"(?:^|(?<=\S))[^\S\r\n]*" + e(environment.line_comment_prefix),
-            )
-        )
+        rules.append((
+            len(environment.line_comment_prefix),
+            TOKEN_LINECOMMENT_BEGIN,
+            r"(?:^|(?<=\S))[^\S\r\n]*" + e(environment.line_comment_prefix),
+        ))
 
     return [x[1:] for x in sorted(rules, reverse=True)]
 
@@ -255,8 +249,9 @@ class Failure:
     """
 
     def __init__(
-        self, message: str, cls: t.Type[TemplateSyntaxError] = TemplateSyntaxError
-    ) -> None:
+            self,
+            message: str,
+            cls: t.Type[TemplateSyntaxError] = TemplateSyntaxError) -> None:
         self.message = message
         self.error_class = cls
 
@@ -509,18 +504,17 @@ class Lexer:
 
         # If lstrip is enabled, it should not be applied if there is any
         # non-whitespace between the newline and block.
-        self.lstrip_unless_re = c(r"[^ \t]") if environment.lstrip_blocks else None
+        self.lstrip_unless_re = c(
+            r"[^ \t]") if environment.lstrip_blocks else None
 
         self.newline_sequence = environment.newline_sequence
         self.keep_trailing_newline = environment.keep_trailing_newline
 
-        root_raw_re = (
-            fr"(?P<raw_begin>{block_start_re}(\-|\+|)\s*raw\s*"
-            fr"(?:\-{block_end_re}\s*|{block_end_re}))"
-        )
+        root_raw_re = (fr"(?P<raw_begin>{block_start_re}(\-|\+|)\s*raw\s*"
+                       fr"(?:\-{block_end_re}\s*|{block_end_re}))")
         root_parts_re = "|".join(
-            [root_raw_re] + [fr"(?P<{n}>{r}(\-|\+|))" for n, r in root_tag_rules]
-        )
+            [root_raw_re] +
+            [fr"(?P<{n}>{r}(\-|\+|))" for n, r in root_tag_rules])
 
         # global lexing rules
         self.rules: t.Dict[str, t.List[_Rule]] = {
@@ -537,27 +531,23 @@ class Lexer:
             # comments
             TOKEN_COMMENT_BEGIN: [
                 _Rule(
-                    c(
-                        fr"(.*?)((?:\+{comment_end_re}|\-{comment_end_re}\s*"
-                        fr"|{comment_end_re}{block_suffix_re}))"
-                    ),
+                    c(fr"(.*?)((?:\+{comment_end_re}|\-{comment_end_re}\s*"
+                      fr"|{comment_end_re}{block_suffix_re}))"),
                     (TOKEN_COMMENT, TOKEN_COMMENT_END),
                     "#pop",
                 ),
-                _Rule(c(r"(.)"), (Failure("Missing end of comment tag"),), None),
+                _Rule(c(r"(.)"), (Failure("Missing end of comment tag"), ),
+                      None),
             ],
             # blocks
             TOKEN_BLOCK_BEGIN: [
                 _Rule(
-                    c(
-                        fr"(?:\+{block_end_re}|\-{block_end_re}\s*"
-                        fr"|{block_end_re}{block_suffix_re})"
-                    ),
+                    c(fr"(?:\+{block_end_re}|\-{block_end_re}\s*"
+                      fr"|{block_end_re}{block_suffix_re})"),
                     TOKEN_BLOCK_END,
                     "#pop",
                 ),
-            ]
-            + tag_rules,
+            ] + tag_rules,
             # variables
             TOKEN_VARIABLE_BEGIN: [
                 _Rule(
@@ -565,26 +555,23 @@ class Lexer:
                     TOKEN_VARIABLE_END,
                     "#pop",
                 )
-            ]
-            + tag_rules,
+            ] + tag_rules,
             # raw block
             TOKEN_RAW_BEGIN: [
                 _Rule(
-                    c(
-                        fr"(.*?)((?:{block_start_re}(\-|\+|))\s*endraw\s*"
-                        fr"(?:\+{block_end_re}|\-{block_end_re}\s*"
-                        fr"|{block_end_re}{block_suffix_re}))"
-                    ),
+                    c(fr"(.*?)((?:{block_start_re}(\-|\+|))\s*endraw\s*"
+                      fr"(?:\+{block_end_re}|\-{block_end_re}\s*"
+                      fr"|{block_end_re}{block_suffix_re}))"),
                     OptionalLStrip(TOKEN_DATA, TOKEN_RAW_END),  # type: ignore
                     "#pop",
                 ),
-                _Rule(c(r"(.)"), (Failure("Missing end of raw directive"),), None),
+                _Rule(c(r"(.)"), (Failure("Missing end of raw directive"), ),
+                      None),
             ],
             # line statements
-            TOKEN_LINESTATEMENT_BEGIN: [
-                _Rule(c(r"\s*(\n|$)"), TOKEN_LINESTATEMENT_END, "#pop")
-            ]
-            + tag_rules,
+            TOKEN_LINESTATEMENT_BEGIN:
+            [_Rule(c(r"\s*(\n|$)"), TOKEN_LINESTATEMENT_END, "#pop")] +
+            tag_rules,
             # line comments
             TOKEN_LINECOMMENT_BEGIN: [
                 _Rule(
@@ -643,16 +630,13 @@ class Lexer:
 
                 if not value.isidentifier():
                     raise TemplateSyntaxError(
-                        "Invalid character in identifier", lineno, name, filename
-                    )
+                        "Invalid character in identifier", lineno, name,
+                        filename)
             elif token == TOKEN_STRING:
                 # try to unescape string
                 try:
-                    value = (
-                        self._normalize_newlines(value_str[1:-1])
-                        .encode("ascii", "backslashreplace")
-                        .decode("unicode-escape")
-                    )
+                    value = (self._normalize_newlines(value_str[1:-1]).encode(
+                        "ascii", "backslashreplace").decode("unicode-escape"))
                 except Exception as e:
                     msg = str(e).split(":")[-1].strip()
                     raise TemplateSyntaxError(msg, lineno, name, filename)
@@ -715,9 +699,9 @@ class Lexer:
                 # is the operator rule. do this only if the end tags look
                 # like operators
                 if balancing_stack and tokens in (
-                    TOKEN_VARIABLE_END,
-                    TOKEN_BLOCK_END,
-                    TOKEN_LINESTATEMENT_END,
+                        TOKEN_VARIABLE_END,
+                        TOKEN_BLOCK_END,
+                        TOKEN_LINESTATEMENT_END,
                 ):
                     continue
 
@@ -732,21 +716,22 @@ class Lexer:
                         # Skipping the text and first type, every other group is the
                         # whitespace control for each type. One of the groups will be
                         # -, +, or empty string instead of None.
-                        strip_sign = next(g for g in groups[2::2] if g is not None)
+                        strip_sign = next(g for g in groups[2::2]
+                                          if g is not None)
 
                         if strip_sign == "-":
                             # Strip all whitespace between the text and the tag.
                             stripped = text.rstrip()
-                            newlines_stripped = text[len(stripped) :].count("\n")
+                            newlines_stripped = text[len(stripped):].count(
+                                "\n")
                             groups = [stripped, *groups[1:]]
                         elif (
-                            # Not marked for preserving whitespace.
-                            strip_sign != "+"
-                            # lstrip is enabled.
-                            and lstrip_unless_re is not None
-                            # Not a variable expression.
-                            and not m.groupdict().get(TOKEN_VARIABLE_BEGIN)
-                        ):
+                                # Not marked for preserving whitespace.
+                                strip_sign != "+" and
+                                # lstrip is enabled.
+                                lstrip_unless_re is not None and
+                                # Not a variable expression.
+                                not m.groupdict().get(TOKEN_VARIABLE_BEGIN)):
                             # The start of text between the last newline and the tag.
                             l_pos = text.rfind("\n") + 1
 
@@ -772,8 +757,7 @@ class Lexer:
                             else:
                                 raise RuntimeError(
                                     f"{regex!r} wanted to resolve the token dynamically"
-                                    " but no group matched"
-                                )
+                                    " but no group matched")
                         # normal group
                         else:
                             data = groups[idx]
@@ -799,8 +783,8 @@ class Lexer:
                         elif data in ("}", ")", "]"):
                             if not balancing_stack:
                                 raise TemplateSyntaxError(
-                                    f"unexpected '{data}'", lineno, name, filename
-                                )
+                                    f"unexpected '{data}'", lineno, name,
+                                    filename)
 
                             expected_op = balancing_stack.pop()
 
@@ -838,8 +822,7 @@ class Lexer:
                         else:
                             raise RuntimeError(
                                 f"{regex!r} wanted to resolve the new state dynamically"
-                                f" but no group matched"
-                            )
+                                f" but no group matched")
                     # direct state name given
                     else:
                         stack.append(new_state)
@@ -850,8 +833,7 @@ class Lexer:
                 # raise error
                 elif pos2 == pos:
                     raise RuntimeError(
-                        f"{regex!r} yielded empty string without stack change"
-                    )
+                        f"{regex!r} yielded empty string without stack change")
 
                 # publish new function and start again
                 pos = pos2
@@ -865,5 +847,5 @@ class Lexer:
 
                 # something went wrong
                 raise TemplateSyntaxError(
-                    f"unexpected char {source[pos]!r} at {pos}", lineno, name, filename
-                )
+                    f"unexpected char {source[pos]!r} at {pos}", lineno, name,
+                    filename)

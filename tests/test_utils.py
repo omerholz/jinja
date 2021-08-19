@@ -6,13 +6,15 @@ from copy import copy as shallow_copy
 import pytest
 from markupsafe import Markup
 
-from jinja2.utils import consume
-from jinja2.utils import generate_lorem_ipsum
-from jinja2.utils import LRUCache
-from jinja2.utils import missing
-from jinja2.utils import object_type_repr
-from jinja2.utils import select_autoescape
-from jinja2.utils import urlize
+from jinja2.utils import (
+    LRUCache,
+    consume,
+    generate_lorem_ipsum,
+    missing,
+    object_type_repr,
+    select_autoescape,
+    urlize,
+)
 
 
 class TestLRUCache:
@@ -64,7 +66,11 @@ class TestLRUCache:
         d["b"] = 2
         d["c"] = 3
         d.clear()
-        assert d.__getstate__() == {"capacity": 3, "_mapping": {}, "_queue": deque([])}
+        assert d.__getstate__() == {
+            "capacity": 3,
+            "_mapping": {},
+            "_queue": deque([])
+        }
 
     def test_repr(self):
         d = LRUCache(3)
@@ -117,7 +123,7 @@ class TestHelpers:
     def test_autoescape_select(self):
         func = select_autoescape(
             enabled_extensions=("html", ".htm"),
-            disabled_extensions=("txt",),
+            disabled_extensions=("txt", ),
             default_for_string="STRING",
             default="NONE",
         )
@@ -135,11 +141,9 @@ class TestEscapeUrlizeTarget:
     def test_escape_urlize_target(self):
         url = "http://example.org"
         target = "<script>"
-        assert urlize(url, target=target) == (
-            '<a href="http://example.org"'
-            ' target="&lt;script&gt;">'
-            "http://example.org</a>"
-        )
+        assert urlize(url, target=target) == ('<a href="http://example.org"'
+                                              ' target="&lt;script&gt;">'
+                                              "http://example.org</a>")
 
 
 class TestLoremIpsum:
@@ -155,21 +159,24 @@ class TestLoremIpsum:
         """Test that the n (number of lines) works as expected."""
         assert generate_lorem_ipsum(n=0, html=False) == ""
         for n in range(1, 50):
-            assert generate_lorem_ipsum(n=n, html=False).count("\n") == (n - 1) * 2
+            assert generate_lorem_ipsum(n=n,
+                                        html=False).count("\n") == (n - 1) * 2
 
     def test_lorem_ipsum_min(self):
         """Test that at least min words are in the output of each line"""
         for _ in range(5):
             m = random.randrange(20, 99)
             for _ in range(10):
-                assert generate_lorem_ipsum(n=1, min=m, html=False).count(" ") >= m - 1
+                assert generate_lorem_ipsum(n=1, min=m,
+                                            html=False).count(" ") >= m - 1
 
     def test_lorem_ipsum_max(self):
         """Test that at least max words are in the output of each line"""
         for _ in range(5):
             m = random.randrange(21, 100)
             for _ in range(10):
-                assert generate_lorem_ipsum(n=1, max=m, html=False).count(" ") < m - 1
+                assert generate_lorem_ipsum(n=1, max=m,
+                                            html=False).count(" ") < m - 1
 
 
 def test_missing():

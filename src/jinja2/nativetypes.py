@@ -1,14 +1,10 @@
 import typing as t
 from ast import literal_eval
-from itertools import chain
-from itertools import islice
+from itertools import chain, islice
 
 from . import nodes
-from .compiler import CodeGenerator
-from .compiler import Frame
-from .compiler import has_safe_repr
-from .environment import Environment
-from .environment import Template
+from .compiler import CodeGenerator, Frame, has_safe_repr
+from .environment import Environment, Template
 
 
 def native_concat(values: t.Iterable[t.Any]) -> t.Optional[t.Any]:
@@ -42,7 +38,6 @@ class NativeCodeGenerator(CodeGenerator):
     """A code generator which renders Python types by not adding
     ``str()`` around output nodes.
     """
-
     @staticmethod
     def _default_finalize(value: t.Any) -> t.Any:
         return value
@@ -50,9 +45,8 @@ class NativeCodeGenerator(CodeGenerator):
     def _output_const_repr(self, group: t.Iterable[t.Any]) -> str:
         return repr("".join([str(v) for v in group]))
 
-    def _output_child_to_const(
-        self, node: nodes.Expr, frame: Frame, finalize: CodeGenerator._FinalizeInfo
-    ) -> t.Any:
+    def _output_child_to_const(self, node: nodes.Expr, frame: Frame,
+                               finalize: CodeGenerator._FinalizeInfo) -> t.Any:
         const = node.as_const(frame.eval_ctx)
 
         if not has_safe_repr(const):
@@ -63,15 +57,13 @@ class NativeCodeGenerator(CodeGenerator):
 
         return finalize.const(const)  # type: ignore
 
-    def _output_child_pre(
-        self, node: nodes.Expr, frame: Frame, finalize: CodeGenerator._FinalizeInfo
-    ) -> None:
+    def _output_child_pre(self, node: nodes.Expr, frame: Frame,
+                          finalize: CodeGenerator._FinalizeInfo) -> None:
         if finalize.src is not None:
             self.write(finalize.src)
 
-    def _output_child_post(
-        self, node: nodes.Expr, frame: Frame, finalize: CodeGenerator._FinalizeInfo
-    ) -> None:
+    def _output_child_post(self, node: nodes.Expr, frame: Frame,
+                           finalize: CodeGenerator._FinalizeInfo) -> None:
         if finalize.src is not None:
             self.write(")")
 
@@ -102,15 +94,14 @@ class NativeTemplate(Template):
     async def render_async(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
         if not self.environment.is_async:
             raise RuntimeError(
-                "The environment was not created with async mode enabled."
-            )
+                "The environment was not created with async mode enabled.")
 
         ctx = self.new_context(dict(*args, **kwargs))
 
         try:
-            return native_concat(
-                [n async for n in self.root_render_func(ctx)]  # type: ignore
-            )
+            return native_concat([n async for n in self.root_render_func(ctx)
+                                  ]  # type: ignore
+                                 )
         except Exception:
             return self.environment.handle_exception()
 

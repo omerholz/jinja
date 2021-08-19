@@ -1,15 +1,13 @@
 import pytest
 
-from jinja2 import Environment
-from jinja2 import nodes
-from jinja2 import Template
-from jinja2 import TemplateSyntaxError
-from jinja2 import UndefinedError
-from jinja2.lexer import Token
-from jinja2.lexer import TOKEN_BLOCK_BEGIN
-from jinja2.lexer import TOKEN_BLOCK_END
-from jinja2.lexer import TOKEN_EOF
-from jinja2.lexer import TokenStream
+from jinja2 import Environment, Template, TemplateSyntaxError, UndefinedError, nodes
+from jinja2.lexer import (
+    TOKEN_BLOCK_BEGIN,
+    TOKEN_BLOCK_END,
+    TOKEN_EOF,
+    Token,
+    TokenStream,
+)
 
 
 class TestTokenStream:
@@ -33,7 +31,9 @@ class TestTokenStream:
         assert bool(ts.eos)
 
     def test_iter(self, env):
-        token_types = [t.type for t in TokenStream(self.test_tokens, "foo", "bar")]
+        token_types = [
+            t.type for t in TokenStream(self.test_tokens, "foo", "bar")
+        ]
         assert token_types == [
             "block_begin",
             "block_end",
@@ -44,8 +44,7 @@ class TestLexer:
     def test_raw1(self, env):
         tmpl = env.from_string(
             "{% raw %}foo{% endraw %}|"
-            "{%raw%}{{ bar }}|{% baz %}{%       endraw    %}"
-        )
+            "{%raw%}{{ bar }}|{% baz %}{%       endraw    %}")
         assert tmpl.render() == "foo|{{ bar }}|{% baz %}"
 
     def test_raw2(self, env):
@@ -56,7 +55,8 @@ class TestLexer:
         # The second newline after baz exists because it is AFTER the
         # {% raw %} and is ignored.
         env = Environment(lstrip_blocks=True, trim_blocks=True)
-        tmpl = env.from_string("bar\n{% raw %}\n  {{baz}}2 spaces\n{% endraw %}\nfoo")
+        tmpl = env.from_string(
+            "bar\n{% raw %}\n  {{baz}}2 spaces\n{% endraw %}\nfoo")
         assert tmpl.render(baz="test") == "bar\n\n  {{baz}}2 spaces\nfoo"
 
     def test_raw4(self, env):
@@ -64,31 +64,26 @@ class TestLexer:
         # newlines up to the first character of data.
         env = Environment(lstrip_blocks=True, trim_blocks=False)
         tmpl = env.from_string(
-            "bar\n{%- raw -%}\n\n  \n  2 spaces\n space{%- endraw -%}\nfoo"
-        )
+            "bar\n{%- raw -%}\n\n  \n  2 spaces\n space{%- endraw -%}\nfoo")
         assert tmpl.render() == "bar2 spaces\n spacefoo"
 
     def test_balancing(self, env):
         env = Environment("{%", "%}", "${", "}")
-        tmpl = env.from_string(
-            """{% for item in seq
-            %}${{'foo': item}|upper}{% endfor %}"""
-        )
-        assert tmpl.render(seq=list(range(3))) == "{'FOO': 0}{'FOO': 1}{'FOO': 2}"
+        tmpl = env.from_string("""{% for item in seq
+            %}${{'foo': item}|upper}{% endfor %}""")
+        assert tmpl.render(
+            seq=list(range(3))) == "{'FOO': 0}{'FOO': 1}{'FOO': 2}"
 
     def test_comments(self, env):
         env = Environment("<!--", "-->", "{", "}")
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
 <ul>
 <!--- for item in seq -->
   <li>{item}</li>
 <!--- endfor -->
-</ul>"""
-        )
+</ul>""")
         assert tmpl.render(seq=list(range(3))) == (
-            "<ul>\n  <li>0</li>\n  <li>1</li>\n  <li>2</li>\n</ul>"
-        )
+            "<ul>\n  <li>0</li>\n  <li>1</li>\n  <li>2</li>\n</ul>")
 
     def test_string_escapes(self, env):
         for char in "\0", "\u2668", "\xe4", "\t", "\r", "\n":
@@ -125,8 +120,12 @@ class TestLexer:
             for template, expected in [
                 ("", {}),
                 ("no\nnewline", {}),
-                ("with\nnewline\n", {False: "with\nnewline"}),
-                ("with\nseveral\n\n\n", {False: "with\nseveral\n\n"}),
+                ("with\nnewline\n", {
+                    False: "with\nnewline"
+                }),
+                ("with\nseveral\n\n\n", {
+                    False: "with\nseveral\n\n"
+                }),
             ]:
                 tmpl = env.from_string(template)
                 expect = expected.get(keep, template)
@@ -164,8 +163,7 @@ class TestLexer:
             pytest.raises(TemplateSyntaxError, env.from_string, t)
 
     def test_lineno_with_strip(self, env):
-        tokens = env.lex(
-            """\
+        tokens = env.lex("""\
 <html>
     <body>
     {%- block content -%}
@@ -173,8 +171,7 @@ class TestLexer:
         {{ item }}
     {% endblock %}
     </body>
-</html>"""
-        )
+</html>""")
         for tok in tokens:
             lineno, token_type, value = tok
             if token_type == "name" and value == "item":
@@ -185,35 +182,29 @@ class TestLexer:
 class TestParser:
     def test_php_syntax(self, env):
         env = Environment("<?", "?>", "<?=", "?>", "<!--", "-->")
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
 <!-- I'm a comment, I'm not interesting -->\
 <? for item in seq -?>
     <?= item ?>
-<?- endfor ?>"""
-        )
+<?- endfor ?>""")
         assert tmpl.render(seq=list(range(5))) == "01234"
 
     def test_erb_syntax(self, env):
         env = Environment("<%", "%>", "<%=", "%>", "<%#", "%>")
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
 <%# I'm a comment, I'm not interesting %>\
 <% for item in seq -%>
     <%= item %>
-<%- endfor %>"""
-        )
+<%- endfor %>""")
         assert tmpl.render(seq=list(range(5))) == "01234"
 
     def test_comment_syntax(self, env):
         env = Environment("<!--", "-->", "${", "}", "<!--#", "-->")
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
 <!--# I'm a comment, I'm not interesting -->\
 <!-- for item in seq --->
     ${item}
-<!--- endfor -->"""
-        )
+<!--- endfor -->""")
         assert tmpl.render(seq=list(range(5))) == "01234"
 
     def test_balancing(self, env):
@@ -221,35 +212,29 @@ class TestParser:
         assert tmpl.render() == "bar"
 
     def test_start_comment(self, env):
-        tmpl = env.from_string(
-            """{# foo comment
+        tmpl = env.from_string("""{# foo comment
 and bar comment #}
 {% macro blub() %}foo{% endmacro %}
-{{ blub() }}"""
-        )
+{{ blub() }}""")
         assert tmpl.render().strip() == "foo"
 
     def test_line_syntax(self, env):
         env = Environment("<%", "%>", "${", "}", "<%#", "%>", "%")
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
 <%# regular comment %>
 % for item in seq:
     ${item}
-% endfor"""
-        )
+% endfor""")
         assert [
             int(x.strip()) for x in tmpl.render(seq=list(range(5))).split()
         ] == list(range(5))
 
         env = Environment("<%", "%>", "${", "}", "<%#", "%>", "%", "##")
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
 <%# regular comment %>
 % for item in seq:
     ${item} ## the rest of the stuff
-% endfor"""
-        )
+% endfor""")
         assert [
             int(x.strip()) for x in tmpl.render(seq=list(range(5))).split()
         ] == list(range(5))
@@ -257,25 +242,21 @@ and bar comment #}
     def test_line_syntax_priority(self, env):
         # XXX: why is the whitespace there in front of the newline?
         env = Environment("{%", "%}", "${", "}", "/*", "*/", "##", "#")
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
 /* ignore me.
    I'm a multiline comment */
 ## for item in seq:
 * ${item}          # this is just extra stuff
-## endfor"""
-        )
+## endfor""")
         assert tmpl.render(seq=[1, 2]).strip() == "* 1\n* 2"
         env = Environment("{%", "%}", "${", "}", "/*", "*/", "#", "##")
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
 /* ignore me.
    I'm a multiline comment */
 # for item in seq:
 * ${item}          ## this is just extra stuff
     ## extra stuff i just want to ignore
-# endfor"""
-        )
+# endfor""")
         assert tmpl.render(seq=[1, 2]).strip() == "* 1\n\n* 2"
 
     def test_error_messages(self, env):
@@ -312,14 +293,16 @@ and bar comment #}
             "Block names in Jinja have to be valid Python identifiers "
             "and may not contain hyphens, use an underscore instead.",
         )
-        assert_error("{% unknown_tag %}", "Encountered unknown tag 'unknown_tag'.")
+        assert_error("{% unknown_tag %}",
+                     "Encountered unknown tag 'unknown_tag'.")
 
 
 class TestSyntax:
     def test_call(self, env):
         env = Environment()
         env.globals["foo"] = lambda a, b, c, e, g: a + b + c + e + g
-        tmpl = env.from_string("{{ foo('a', c='d', e='f', *['b'], **{'g': 'h'}) }}")
+        tmpl = env.from_string(
+            "{{ foo('a', c='d', e='f', *['b'], **{'g': 'h'}) }}")
         assert tmpl.render() == "abdfh"
 
     def test_slicing(self, env):
@@ -427,14 +410,12 @@ class TestSyntax:
 
     def test_bool(self, env):
         tmpl = env.from_string(
-            "{{ true and false }}|{{ false or true }}|{{ not false }}"
-        )
+            "{{ true and false }}|{{ false or true }}|{{ not false }}")
         assert tmpl.render() == "False|True|True"
 
     def test_grouping(self, env):
         tmpl = env.from_string(
-            "{{ (true and false) or (false and true) and not false }}"
-        )
+            "{{ (true and false) or (false and true) and not false }}")
         assert tmpl.render() == "False"
 
     def test_django_attr(self, env):
@@ -483,14 +464,14 @@ class TestSyntax:
 
     def test_tuple_expr(self, env):
         for tmpl in [
-            "{{ () }}",
-            "{{ (1, 2) }}",
-            "{{ (1, 2,) }}",
-            "{{ 1, }}",
-            "{{ 1, 2 }}",
-            "{% for foo, bar in seq %}...{% endfor %}",
-            "{% for x in foo, bar %}...{% endfor %}",
-            "{% for x in foo, %}...{% endfor %}",
+                "{{ () }}",
+                "{{ (1, 2) }}",
+                "{{ (1, 2,) }}",
+                "{{ 1, }}",
+                "{{ 1, 2 }}",
+                "{% for foo, bar in seq %}...{% endfor %}",
+                "{% for x in foo, bar %}...{% endfor %}",
+                "{% for x in foo, %}...{% endfor %}",
         ]:
             assert env.from_string(tmpl)
 
@@ -500,9 +481,8 @@ class TestSyntax:
 
     def test_block_end_name(self, env):
         env.from_string("{% block foo %}...{% endblock foo %}")
-        pytest.raises(
-            TemplateSyntaxError, env.from_string, "{% block x %}{% endblock y %}"
-        )
+        pytest.raises(TemplateSyntaxError, env.from_string,
+                      "{% block x %}{% endblock y %}")
 
     def test_constant_casing(self, env):
         for const in True, False, None:
@@ -513,10 +493,10 @@ class TestSyntax:
             assert tmpl.render() == f"{const}|{const}|"
 
     def test_test_chaining(self, env):
-        pytest.raises(
-            TemplateSyntaxError, env.from_string, "{{ foo is string is sequence }}"
-        )
-        assert env.from_string("{{ 42 is string or 42 is number }}").render() == "True"
+        pytest.raises(TemplateSyntaxError, env.from_string,
+                      "{{ foo is string is sequence }}")
+        assert env.from_string(
+            "{{ 42 is string or 42 is number }}").render() == "True"
 
     def test_string_concatenation(self, env):
         tmpl = env.from_string('{{ "foo" "bar" "baz" }}')
@@ -546,8 +526,7 @@ class TestSyntax:
     def test_const(self, env):
         tmpl = env.from_string(
             "{{ true }}|{{ false }}|{{ none }}|"
-            "{{ none is defined }}|{{ missing is defined }}"
-        )
+            "{{ none is defined }}|{{ missing is defined }}")
         assert tmpl.render() == "True|False|None|True|False"
 
     def test_neg_filter_priority(self, env):
@@ -562,11 +541,9 @@ class TestSyntax:
             pytest.raises(TemplateSyntaxError, env.from_string, tmpl)
 
     def test_localset(self, env):
-        tmpl = env.from_string(
-            """{% set foo = 0 %}\
+        tmpl = env.from_string("""{% set foo = 0 %}\
 {% for item in [1, 2] %}{% set foo = 1 %}{% endfor %}\
-{{ foo }}"""
-        )
+{{ foo }}""")
         assert tmpl.render() == "0"
 
     def test_parse_unary(self, env):
@@ -602,7 +579,8 @@ class TestLstripBlocks:
 
     def test_lstrip_endline(self, env):
         env = Environment(lstrip_blocks=True, trim_blocks=False)
-        tmpl = env.from_string("""    hello{% if True %}\n    goodbye{% endif %}""")
+        tmpl = env.from_string(
+            """    hello{% if True %}\n    goodbye{% endif %}""")
         assert tmpl.render() == "    hello\n    goodbye"
 
     def test_lstrip_inline(self, env):
@@ -613,16 +591,13 @@ class TestLstripBlocks:
     def test_lstrip_nested(self, env):
         env = Environment(lstrip_blocks=True, trim_blocks=False)
         tmpl = env.from_string(
-            """    {% if True %}a {% if True %}b {% endif %}c {% endif %}"""
-        )
+            """    {% if True %}a {% if True %}b {% endif %}c {% endif %}""")
         assert tmpl.render() == "a b c "
 
     def test_lstrip_left_chars(self, env):
         env = Environment(lstrip_blocks=True, trim_blocks=False)
-        tmpl = env.from_string(
-            """    abc {% if True %}
-        hello{% endif %}"""
-        )
+        tmpl = env.from_string("""    abc {% if True %}
+        hello{% endif %}""")
         assert tmpl.render() == "    abc \n        hello"
 
     def test_lstrip_embeded_strings(self, env):
@@ -637,11 +612,9 @@ class TestLstripBlocks:
 
     def test_lstrip_comment(self, env):
         env = Environment(lstrip_blocks=True, trim_blocks=False)
-        tmpl = env.from_string(
-            """    {# if True #}
+        tmpl = env.from_string("""    {# if True #}
 hello
-    {#endif#}"""
-        )
+    {#endif#}""")
         assert tmpl.render() == "\nhello\n"
 
     def test_lstrip_angle_bracket_simple(self, env):
@@ -689,13 +662,11 @@ hello
             lstrip_blocks=True,
             trim_blocks=True,
         )
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
     <%# regular comment %>
     <% for item in seq %>
 ${item} ## the rest of the stuff
-   <% endfor %>"""
-        )
+   <% endfor %>""")
         assert tmpl.render(seq=range(5)) == "".join(f"{x}\n" for x in range(5))
 
     def test_lstrip_angle_bracket_compact(self, env):
@@ -711,13 +682,11 @@ ${item} ## the rest of the stuff
             lstrip_blocks=True,
             trim_blocks=True,
         )
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
     <%#regular comment%>
     <%for item in seq%>
 ${item} ## the rest of the stuff
-   <%endfor%>"""
-        )
+   <%endfor%>""")
         assert tmpl.render(seq=range(5)) == "".join(f"{x}\n" for x in range(5))
 
     def test_lstrip_blocks_outside_with_new_line(self):
@@ -725,8 +694,7 @@ ${item} ## the rest of the stuff
         tmpl = env.from_string(
             "  {% if kvs %}(\n"
             "   {% for k, v in kvs %}{{ k }}={{ v }} {% endfor %}\n"
-            "  ){% endif %}"
-        )
+            "  ){% endif %}")
         out = tmpl.render(kvs=[("a", 1), ("b", 2)])
         assert out == "(\na=1 b=2 \n  )"
 
@@ -735,8 +703,7 @@ ${item} ## the rest of the stuff
         tmpl = env.from_string(
             "  {% if kvs %}(\n"
             "   {% for k, v in kvs %}{{ k }}={{ v }} {% endfor %}\n"
-            "  ){% endif %}"
-        )
+            "  ){% endif %}")
         out = tmpl.render(kvs=[("a", 1), ("b", 2)])
         assert out == "(\na=1 b=2   )"
 
@@ -745,8 +712,7 @@ ${item} ## the rest of the stuff
         tmpl = env.from_string(
             "  ({% if kvs %}\n"
             "   {% for k, v in kvs %}{{ k }}={{ v }} {% endfor %}\n"
-            "  {% endif %})"
-        )
+            "  {% endif %})")
         out = tmpl.render(kvs=[("a", 1), ("b", 2)])
         assert out == "  (\na=1 b=2 \n)"
 
@@ -755,8 +721,7 @@ ${item} ## the rest of the stuff
         tmpl = env.from_string(
             "  ({% if kvs %}\n"
             "   {% for k, v in kvs %}{{ k }}={{ v }} {% endfor %}\n"
-            "  {% endif %})"
-        )
+            "  {% endif %})")
         out = tmpl.render(kvs=[("a", 1), ("b", 2)])
         assert out == "  (a=1 b=2 )"
 
@@ -765,8 +730,7 @@ ${item} ## the rest of the stuff
         tmpl = env.from_string(
             "  {% if kvs %}"
             "   {% for k, v in kvs %}{{ k }}={{ v }} {% endfor %}"
-            "  {% endif %}"
-        )
+            "  {% endif %}")
         out = tmpl.render(kvs=[("a", 1), ("b", 2)])
         assert out == "   a=1 b=2   "
 
@@ -775,8 +739,7 @@ ${item} ## the rest of the stuff
         tmpl = env.from_string(
             "  {% if kvs %}"
             "   {% for k, v in kvs %}{{ k }}={{ v }} {% endfor %}"
-            "  {% endif %}"
-        )
+            "  {% endif %}")
         out = tmpl.render(kvs=[("a", 1), ("b", 2)])
         assert out == "   a=1 b=2   "
 
@@ -785,8 +748,7 @@ ${item} ## the rest of the stuff
         tmpl = env.from_string(
             "  {% if kvs -%}"
             "   {% for k, v in kvs %}{{ k }}={{ v }} {% endfor -%}"
-            "  {% endif -%}"
-        )
+            "  {% endif -%}")
         out = tmpl.render(kvs=[("a", 1), ("b", 2)])
         assert out == "a=1 b=2 "
 
@@ -795,14 +757,14 @@ ${item} ## the rest of the stuff
         tmpl = env.from_string(
             "  {%- if kvs %}"
             "   {%- for k, v in kvs %}{{ k }}={{ v }} {% endfor -%}"
-            "  {%- endif %}"
-        )
+            "  {%- endif %}")
         out = tmpl.render(kvs=[("a", 1), ("b", 2)])
         assert out == "a=1 b=2 "
 
     def test_lstrip_trim_blocks_comment(self):
         env = Environment(lstrip_blocks=True, trim_blocks=True)
-        tmpl = env.from_string(" {# 1 space #}\n  {# 2 spaces #}    {# 4 spaces #}")
+        tmpl = env.from_string(
+            " {# 1 space #}\n  {# 2 spaces #}    {# 4 spaces #}")
         out = tmpl.render()
         assert out == " " * 4
 
@@ -813,82 +775,103 @@ ${item} ## the rest of the stuff
         assert out == "1 2"
 
     def test_php_syntax_with_manual(self, env):
-        env = Environment(
-            "<?", "?>", "<?=", "?>", "<!--", "-->", lstrip_blocks=True, trim_blocks=True
-        )
-        tmpl = env.from_string(
-            """\
+        env = Environment("<?",
+                          "?>",
+                          "<?=",
+                          "?>",
+                          "<!--",
+                          "-->",
+                          lstrip_blocks=True,
+                          trim_blocks=True)
+        tmpl = env.from_string("""\
     <!-- I'm a comment, I'm not interesting -->
     <? for item in seq -?>
         <?= item ?>
-    <?- endfor ?>"""
-        )
+    <?- endfor ?>""")
         assert tmpl.render(seq=range(5)) == "01234"
 
     def test_php_syntax(self, env):
-        env = Environment(
-            "<?", "?>", "<?=", "?>", "<!--", "-->", lstrip_blocks=True, trim_blocks=True
-        )
-        tmpl = env.from_string(
-            """\
+        env = Environment("<?",
+                          "?>",
+                          "<?=",
+                          "?>",
+                          "<!--",
+                          "-->",
+                          lstrip_blocks=True,
+                          trim_blocks=True)
+        tmpl = env.from_string("""\
     <!-- I'm a comment, I'm not interesting -->
     <? for item in seq ?>
         <?= item ?>
-    <? endfor ?>"""
-        )
-        assert tmpl.render(seq=range(5)) == "".join(f"        {x}\n" for x in range(5))
+    <? endfor ?>""")
+        assert tmpl.render(seq=range(5)) == "".join(f"        {x}\n"
+                                                    for x in range(5))
 
     def test_php_syntax_compact(self, env):
-        env = Environment(
-            "<?", "?>", "<?=", "?>", "<!--", "-->", lstrip_blocks=True, trim_blocks=True
-        )
-        tmpl = env.from_string(
-            """\
+        env = Environment("<?",
+                          "?>",
+                          "<?=",
+                          "?>",
+                          "<!--",
+                          "-->",
+                          lstrip_blocks=True,
+                          trim_blocks=True)
+        tmpl = env.from_string("""\
     <!-- I'm a comment, I'm not interesting -->
     <?for item in seq?>
         <?=item?>
-    <?endfor?>"""
-        )
-        assert tmpl.render(seq=range(5)) == "".join(f"        {x}\n" for x in range(5))
+    <?endfor?>""")
+        assert tmpl.render(seq=range(5)) == "".join(f"        {x}\n"
+                                                    for x in range(5))
 
     def test_erb_syntax(self, env):
-        env = Environment(
-            "<%", "%>", "<%=", "%>", "<%#", "%>", lstrip_blocks=True, trim_blocks=True
-        )
-        tmpl = env.from_string(
-            """\
+        env = Environment("<%",
+                          "%>",
+                          "<%=",
+                          "%>",
+                          "<%#",
+                          "%>",
+                          lstrip_blocks=True,
+                          trim_blocks=True)
+        tmpl = env.from_string("""\
 <%# I'm a comment, I'm not interesting %>
     <% for item in seq %>
     <%= item %>
     <% endfor %>
-"""
-        )
-        assert tmpl.render(seq=range(5)) == "".join(f"    {x}\n" for x in range(5))
+""")
+        assert tmpl.render(seq=range(5)) == "".join(f"    {x}\n"
+                                                    for x in range(5))
 
     def test_erb_syntax_with_manual(self, env):
-        env = Environment(
-            "<%", "%>", "<%=", "%>", "<%#", "%>", lstrip_blocks=True, trim_blocks=True
-        )
-        tmpl = env.from_string(
-            """\
+        env = Environment("<%",
+                          "%>",
+                          "<%=",
+                          "%>",
+                          "<%#",
+                          "%>",
+                          lstrip_blocks=True,
+                          trim_blocks=True)
+        tmpl = env.from_string("""\
 <%# I'm a comment, I'm not interesting %>
     <% for item in seq -%>
         <%= item %>
-    <%- endfor %>"""
-        )
+    <%- endfor %>""")
         assert tmpl.render(seq=range(5)) == "01234"
 
     def test_erb_syntax_no_lstrip(self, env):
-        env = Environment(
-            "<%", "%>", "<%=", "%>", "<%#", "%>", lstrip_blocks=True, trim_blocks=True
-        )
-        tmpl = env.from_string(
-            """\
+        env = Environment("<%",
+                          "%>",
+                          "<%=",
+                          "%>",
+                          "<%#",
+                          "%>",
+                          lstrip_blocks=True,
+                          trim_blocks=True)
+        tmpl = env.from_string("""\
 <%# I'm a comment, I'm not interesting %>
     <%+ for item in seq -%>
         <%= item %>
-    <%- endfor %>"""
-        )
+    <%- endfor %>""")
         assert tmpl.render(seq=range(5)) == "    01234"
 
     def test_comment_syntax(self, env):
@@ -902,13 +885,11 @@ ${item} ## the rest of the stuff
             lstrip_blocks=True,
             trim_blocks=True,
         )
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
 <!--# I'm a comment, I'm not interesting -->\
 <!-- for item in seq --->
     ${item}
-<!--- endfor -->"""
-        )
+<!--- endfor -->""")
         assert tmpl.render(seq=range(5)) == "01234"
 
 
@@ -954,8 +935,7 @@ class TestTrimBlocks:
     def test_trim_nested(self, env):
         env = Environment(trim_blocks=True, lstrip_blocks=True)
         tmpl = env.from_string(
-            "    {% if True %}\na {% if True %}\nb {% endif %}\nc {% endif %}"
-        )
+            "    {% if True %}\na {% if True %}\nb {% endif %}\nc {% endif %}")
         assert tmpl.render() == "a b c "
 
     def test_no_trim_nested(self, env):
@@ -978,15 +958,13 @@ class TestTrimBlocks:
     def test_multiple_comment_trim_lstrip(self, env):
         env = Environment(trim_blocks=True, lstrip_blocks=True)
         tmpl = env.from_string(
-            "   {# comment #}\n\n{# comment2 #}\n   \n{# comment3 #}\n\n "
-        )
+            "   {# comment #}\n\n{# comment2 #}\n   \n{# comment3 #}\n\n ")
         assert tmpl.render() == "\n   \n\n "
 
     def test_multiple_comment_no_trim_lstrip(self, env):
         env = Environment(trim_blocks=True, lstrip_blocks=True)
         tmpl = env.from_string(
-            "   {# comment +#}\n\n{# comment2 +#}\n   \n{# comment3 +#}\n\n "
-        )
+            "   {# comment +#}\n\n{# comment2 +#}\n   \n{# comment3 +#}\n\n ")
         assert tmpl.render() == "\n\n\n   \n\n\n "
 
     def test_raw_trim_lstrip(self, env):
@@ -996,17 +974,24 @@ class TestTrimBlocks:
 
     def test_raw_no_trim_lstrip(self, env):
         env = Environment(trim_blocks=False, lstrip_blocks=True)
-        tmpl = env.from_string("{{x}}{% raw %}\n\n      {% endraw +%}\n\n{{ y }}")
+        tmpl = env.from_string(
+            "{{x}}{% raw %}\n\n      {% endraw +%}\n\n{{ y }}")
         assert tmpl.render(x=1, y=2) == "1\n\n\n\n2"
 
         # raw blocks do not process inner text, so start tag cannot ignore trim
         with pytest.raises(TemplateSyntaxError):
-            tmpl = env.from_string("{{x}}{% raw +%}\n\n  {% endraw +%}\n\n{{ y }}")
+            tmpl = env.from_string(
+                "{{x}}{% raw +%}\n\n  {% endraw +%}\n\n{{ y }}")
 
     def test_no_trim_angle_bracket(self, env):
-        env = Environment(
-            "<%", "%>", "${", "}", "<%#", "%>", lstrip_blocks=True, trim_blocks=True
-        )
+        env = Environment("<%",
+                          "%>",
+                          "${",
+                          "}",
+                          "<%#",
+                          "%>",
+                          lstrip_blocks=True,
+                          trim_blocks=True)
         tmpl = env.from_string("    <% if True +%>\n\n    <% endif %>")
         assert tmpl.render() == "\n\n"
 

@@ -2,8 +2,7 @@ import inspect
 import typing as t
 from functools import wraps
 
-from .utils import _PassArg
-from .utils import pass_eval_context
+from .utils import _PassArg, pass_eval_context
 
 V = t.TypeVar("V")
 
@@ -63,6 +62,5 @@ async def auto_aiter(
 
 
 async def auto_to_list(
-    value: "t.Union[t.AsyncIterable[V], t.Iterable[V]]",
-) -> t.List["V"]:
+        value: "t.Union[t.AsyncIterable[V], t.Iterable[V]]", ) -> t.List["V"]:
     return [x async for x in auto_aiter(value)]

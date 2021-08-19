@@ -6,29 +6,32 @@ from collections import abc
 from itertools import chain
 
 from markupsafe import escape  # noqa: F401
-from markupsafe import Markup
-from markupsafe import soft_str
+from markupsafe import Markup, soft_str
 
-from .async_utils import auto_aiter
 from .async_utils import auto_await  # noqa: F401
+from .async_utils import auto_aiter
 from .exceptions import TemplateNotFound  # noqa: F401
 from .exceptions import TemplateRuntimeError  # noqa: F401
 from .exceptions import UndefinedError
 from .nodes import EvalContext
-from .utils import _PassArg
-from .utils import concat
-from .utils import internalcode
-from .utils import missing
 from .utils import Namespace  # noqa: F401
-from .utils import object_type_repr
-from .utils import pass_eval_context
+from .utils import (
+    _PassArg,
+    concat,
+    internalcode,
+    missing,
+    object_type_repr,
+    pass_eval_context,
+)
 
 V = t.TypeVar("V")
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
 
 if t.TYPE_CHECKING:
     import logging
+
     import typing_extensions as te
+
     from .environment import Environment
 
     class LoopRenderFunc(te.Protocol):
@@ -125,9 +128,11 @@ def new_context(
         for key, value in locals.items():
             if value is not missing:
                 parent[key] = value
-    return environment.context_class(
-        environment, parent, template_name, blocks, globals=globals
-    )
+    return environment.context_class(environment,
+                                     parent,
+                                     template_name,
+                                     blocks,
+                                     globals=globals)
 
 
 class TemplateReference:
@@ -225,8 +230,7 @@ class Context:
             blocks[index]
         except LookupError:
             return self.environment.undefined(
-                f"there is no parent block called {name!r}.", name="super"
-            )
+                f"there is no parent block called {name!r}.", name="super")
         return BlockReference(name, self, blocks, index)
 
     def get(self, key: str, default: t.Any = None) -> t.Any:
@@ -310,7 +314,10 @@ class Context:
 
     @internalcode
     def call(
-        __self, __obj: t.Callable, *args: t.Any, **kwargs: t.Any  # noqa: B902
+            __self,
+            __obj: t.Callable,
+            *args: t.Any,
+            **kwargs: t.Any  # noqa: B902
     ) -> t.Union[t.Any, "Undefined"]:
         """Call the callable with the arguments and keyword arguments
         provided but inject the active context or environment as first
@@ -321,10 +328,10 @@ class Context:
             __traceback_hide__ = True  # noqa
 
         # Allow callable classes to take a context
-        if (
-            hasattr(__obj, "__call__")  # noqa: B004
-            and _PassArg.from_obj(__obj.__call__) is not None  # type: ignore
-        ):
+        if (hasattr(__obj, "__call__")  # noqa: B004 and
+                                _PassArg.from_obj(
+                                    __obj.__call__) is not None  # type: ignore
+            ):
             __obj = __obj.__call__  # type: ignore
 
         pass_arg = _PassArg.from_obj(__obj)
@@ -336,11 +343,11 @@ class Context:
                 __self = __self.derived(kwargs["_loop_vars"])
             if kwargs.get("_block_vars"):
                 __self = __self.derived(kwargs["_block_vars"])
-            args = (__self,) + args
+            args = (__self, ) + args
         elif pass_arg is _PassArg.eval_context:
-            args = (__self.eval_ctx,) + args
+            args = (__self.eval_ctx, ) + args
         elif pass_arg is _PassArg.environment:
-            args = (__self.environment,) + args
+            args = (__self.environment, ) + args
 
         kwargs.pop("_block_vars", None)
         kwargs.pop("_loop_vars", None)
@@ -350,17 +357,16 @@ class Context:
         except StopIteration:
             return __self.environment.undefined(
                 "value was undefined because a callable raised a"
-                " StopIteration exception"
-            )
+                " StopIteration exception")
 
-    def derived(self, locals: t.Optional[t.Dict[str, t.Any]] = None) -> "Context":
+    def derived(self,
+                locals: t.Optional[t.Dict[str, t.Any]] = None) -> "Context":
         """Internal helper function to create a derived context.  This is
         used in situations where the system needs a new context in the same
         template that is independent.
         """
-        context = new_context(
-            self.environment, self.name, {}, self.get_all(), True, None, locals
-        )
+        context = new_context(self.environment, self.name, {}, self.get_all(),
+                              True, None, locals)
         context.eval_ctx = self.eval_ctx
         context.blocks.update((k, list(v)) for k, v in self.blocks.items())
         return context
@@ -407,15 +413,16 @@ class BlockReference:
         """Super the block."""
         if self._depth + 1 >= len(self._stack):
             return self._context.environment.undefined(
-                f"there is no parent block called {self.name!r}.", name="super"
-            )
-        return BlockReference(self.name, self._context, self._stack, self._depth + 1)
+                f"there is no parent block called {self.name!r}.",
+                name="super")
+        return BlockReference(self.name, self._context, self._stack,
+                              self._depth + 1)
 
     @internalcode
     async def _async_call(self) -> str:
-        rv = concat(
-            [x async for x in self._stack[self._depth](self._context)]  # type: ignore
-        )
+        rv = concat([x async for x in self._stack[self._depth](self._context)
+                     ]  # type: ignore
+                    )
 
         if self._context.eval_ctx.autoescape:
             return Markup(rv)
@@ -490,7 +497,8 @@ class LoopContext:
         except TypeError:
             iterable = list(self._iterator)
             self._iterator = self._to_iterator(iterable)
-            self._length = len(iterable) + self.index + (self._after is not missing)
+            self._length = len(iterable) + self.index + (self._after
+                                                         is not missing)
 
         return self._length
 
@@ -637,8 +645,8 @@ class AsyncLoopContext(LoopContext):
 
     @staticmethod
     def _to_iterator(  # type: ignore
-        iterable: t.Union[t.Iterable[V], t.AsyncIterable[V]]
-    ) -> t.AsyncIterator[V]:
+        iterable: t.Union[t.Iterable[V],
+                          t.AsyncIterable[V]]) -> t.AsyncIterator[V]:
         return auto_aiter(iterable)
 
     @property
@@ -651,7 +659,8 @@ class AsyncLoopContext(LoopContext):
         except TypeError:
             iterable = [x async for x in self._iterator]
             self._iterator = self._to_iterator(iterable)
-            self._length = len(iterable) + self.index + (self._after is not missing)
+            self._length = len(iterable) + self.index + (self._after
+                                                         is not missing)
 
         return self._length
 
@@ -761,7 +770,7 @@ class Macro:
             autoescape = self._default_autoescape
 
         # try to consume the positional arguments
-        arguments = list(args[: self._argument_count])
+        arguments = list(args[:self._argument_count])
         off = len(arguments)
 
         # For information why this is necessary refer to the handling
@@ -772,7 +781,7 @@ class Macro:
         # arguments expected we start filling in keyword arguments
         # and defaults.
         if off != self._argument_count:
-            for name in self.arguments[len(arguments) :]:
+            for name in self.arguments[len(arguments):]:
                 try:
                     value = kwargs.pop(name)
                 except KeyError:
@@ -789,7 +798,8 @@ class Macro:
         if self.caller and not found_caller:
             caller = kwargs.pop("caller", None)
             if caller is None:
-                caller = self._environment.undefined("No caller defined", name="caller")
+                caller = self._environment.undefined("No caller defined",
+                                                     name="caller")
             arguments.append(caller)
 
         if self.catch_kwargs:
@@ -798,22 +808,20 @@ class Macro:
             if "caller" in kwargs:
                 raise TypeError(
                     f"macro {self.name!r} was invoked with two values for the special"
-                    " caller argument. This is most likely a bug."
-                )
+                    " caller argument. This is most likely a bug.")
             raise TypeError(
                 f"macro {self.name!r} takes no keyword argument {next(iter(kwargs))!r}"
             )
         if self.catch_varargs:
-            arguments.append(args[self._argument_count :])
+            arguments.append(args[self._argument_count:])
         elif len(args) > self._argument_count:
-            raise TypeError(
-                f"macro {self.name!r} takes not more than"
-                f" {len(self.arguments)} argument(s)"
-            )
+            raise TypeError(f"macro {self.name!r} takes not more than"
+                            f" {len(self.arguments)} argument(s)")
 
         return self._invoke(arguments, autoescape)
 
-    async def _async_invoke(self, arguments: t.List[t.Any], autoescape: bool) -> str:
+    async def _async_invoke(self, arguments: t.List[t.Any],
+                            autoescape: bool) -> str:
         rv = await self._func(*arguments)  # type: ignore
 
         if autoescape:
@@ -883,20 +891,15 @@ class Undefined:
             return f"{self._undefined_name!r} is undefined"
 
         if not isinstance(self._undefined_name, str):
-            return (
-                f"{object_type_repr(self._undefined_obj)} has no"
-                f" element {self._undefined_name!r}"
-            )
+            return (f"{object_type_repr(self._undefined_obj)} has no"
+                    f" element {self._undefined_name!r}")
 
-        return (
-            f"{object_type_repr(self._undefined_obj)!r} has no"
-            f" attribute {self._undefined_name!r}"
-        )
+        return (f"{object_type_repr(self._undefined_obj)!r} has no"
+                f" attribute {self._undefined_name!r}")
 
     @internalcode
-    def _fail_with_undefined_error(
-        self, *args: t.Any, **kwargs: t.Any
-    ) -> "te.NoReturn":
+    def _fail_with_undefined_error(self, *args: t.Any,
+                                   **kwargs: t.Any) -> "te.NoReturn":
         """Raise an :exc:`UndefinedError` when operations are performed
         on the undefined value.
         """
@@ -950,8 +953,8 @@ class Undefined:
 
 
 def make_logging_undefined(
-    logger: t.Optional["logging.Logger"] = None, base: t.Type[Undefined] = Undefined
-) -> t.Type[Undefined]:
+        logger: t.Optional["logging.Logger"] = None,
+        base: t.Type[Undefined] = Undefined) -> t.Type[Undefined]:
     """Given a logger object this returns a new undefined class that will
     log certain failures.  It will log iterations and printing.  If no
     logger is given a default logger is created.
@@ -979,15 +982,13 @@ def make_logging_undefined(
 
     def _log_message(undef: Undefined) -> None:
         logger.warning(  # type: ignore
-            "Template variable warning: %s", undef._undefined_message
-        )
+            "Template variable warning: %s", undef._undefined_message)
 
     class LoggingUndefined(base):  # type: ignore
         __slots__ = ()
 
         def _fail_with_undefined_error(  # type: ignore
-            self, *args: t.Any, **kwargs: t.Any
-        ) -> "te.NoReturn":
+                self, *args: t.Any, **kwargs: t.Any) -> "te.NoReturn":
             try:
                 super()._fail_with_undefined_error(*args, **kwargs)
             except self._undefined_exception as e:
@@ -1062,8 +1063,7 @@ class DebugUndefined(Undefined):
         else:
             message = (
                 f"no such element: {object_type_repr(self._undefined_obj)}"
-                f"[{self._undefined_name!r}]"
-            )
+                f"[{self._undefined_name!r}]")
 
         return f"{{{{ {message} }}}}"
 

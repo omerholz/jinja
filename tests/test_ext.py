@@ -3,19 +3,14 @@ from io import BytesIO
 
 import pytest
 
-from jinja2 import DictLoader
-from jinja2 import Environment
-from jinja2 import nodes
-from jinja2 import pass_context
+from jinja2 import DictLoader, Environment, nodes, pass_context
 from jinja2.exceptions import TemplateAssertionError
 from jinja2.ext import Extension
-from jinja2.lexer import count_newlines
-from jinja2.lexer import Token
+from jinja2.lexer import Token, count_newlines
 
 importable_object = 23
 
 _gettext_re = re.compile(r"_\((.*?)\)", re.DOTALL)
-
 
 i18n_templates = {
     "default.html": '<title>{{ page_title|default(_("missing")) }}</title>'
@@ -37,11 +32,14 @@ newstyle_i18n_templates = {
     "plural.html": "{% trans user_count %}One user online{% pluralize %}"
     "{{ user_count }} users online{% endtrans %}",
     "stringformat.html": '{{ _("User: %(num)s", num=user_count) }}',
-    "ngettext.html": '{{ ngettext("%(num)s apple", "%(num)s apples", apples) }}',
-    "ngettext_long.html": "{% trans num=apples %}{{ num }} apple{% pluralize %}"
+    "ngettext.html":
+    '{{ ngettext("%(num)s apple", "%(num)s apples", apples) }}',
+    "ngettext_long.html":
+    "{% trans num=apples %}{{ num }} apple{% pluralize %}"
     "{{ num }} apples{% endtrans %}",
     "pgettext.html": '{{ pgettext("fruit", "Apple") }}',
-    "npgettext.html": '{{ npgettext("fruit", "%(num)s apple", "%(num)s apples",'
+    "npgettext.html":
+    '{{ npgettext("fruit", "%(num)s apple", "%(num)s apples",'
     " apples) }}",
     "transvars1.html": "{% trans %}User: {{ num }}{% endtrans %}",
     "transvars2.html": "{% trans num=count %}User: {{ num }}{% endtrans %}",
@@ -51,7 +49,6 @@ newstyle_i18n_templates = {
     "explicitvars.html": '{% trans foo="42" %}%(foo)s{% endtrans %}',
 }
 
-
 languages = {
     "de": {
         "missing": "fehlend",
@@ -60,9 +57,18 @@ languages = {
         "%(user_count)s users online": "%(user_count)s Benutzer online",
         "User: %(num)s": "Benutzer: %(num)s",
         "User: %(count)s": "Benutzer: %(count)s",
-        "Apple": {None: "Apfel", "fruit": "Apple"},
-        "%(num)s apple": {None: "%(num)s Apfel", "fruit": "%(num)s Apple"},
-        "%(num)s apples": {None: "%(num)s Äpfel", "fruit": "%(num)s Apples"},
+        "Apple": {
+            None: "Apfel",
+            "fruit": "Apple"
+        },
+        "%(num)s apple": {
+            None: "%(num)s Apfel",
+            "fruit": "%(num)s Apple"
+        },
+        "%(num)s apples": {
+            None: "%(num)s Äpfel",
+            "fruit": "%(num)s Apples"
+        },
     }
 }
 
@@ -112,37 +118,34 @@ def npgettext(context, c, s, p, n):
     return _get_with_context(value, c)
 
 
-i18n_env = Environment(
-    loader=DictLoader(i18n_templates), extensions=["jinja2.ext.i18n"]
-)
-i18n_env.globals.update(
-    {
-        "_": gettext,
-        "gettext": gettext,
-        "ngettext": ngettext,
-        "pgettext": pgettext,
-        "npgettext": npgettext,
-    }
-)
+i18n_env = Environment(loader=DictLoader(i18n_templates),
+                       extensions=["jinja2.ext.i18n"])
+i18n_env.globals.update({
+    "_": gettext,
+    "gettext": gettext,
+    "ngettext": ngettext,
+    "pgettext": pgettext,
+    "npgettext": npgettext,
+})
 i18n_env_trimmed = Environment(extensions=["jinja2.ext.i18n"])
 
 i18n_env_trimmed.policies["ext.i18n.trimmed"] = True
-i18n_env_trimmed.globals.update(
-    {
-        "_": gettext,
-        "gettext": gettext,
-        "ngettext": ngettext,
-        "pgettext": pgettext,
-        "npgettext": npgettext,
-    }
-)
+i18n_env_trimmed.globals.update({
+    "_": gettext,
+    "gettext": gettext,
+    "ngettext": ngettext,
+    "pgettext": pgettext,
+    "npgettext": npgettext,
+})
 
-newstyle_i18n_env = Environment(
-    loader=DictLoader(newstyle_i18n_templates), extensions=["jinja2.ext.i18n"]
-)
+newstyle_i18n_env = Environment(loader=DictLoader(newstyle_i18n_templates),
+                                extensions=["jinja2.ext.i18n"])
 newstyle_i18n_env.install_gettext_callables(  # type: ignore
-    gettext, ngettext, newstyle=True, pgettext=pgettext, npgettext=npgettext
-)
+    gettext,
+    ngettext,
+    newstyle=True,
+    pgettext=pgettext,
+    npgettext=npgettext)
 
 
 class ExampleExtension(Extension):
@@ -151,25 +154,21 @@ class ExampleExtension(Extension):
     context_reference_node_cls = nodes.ContextReference
 
     def parse(self, parser):
-        return nodes.Output(
-            [
-                self.call_method(
-                    "_dump",
-                    [
-                        nodes.EnvironmentAttribute("sandboxed"),
-                        self.attr("ext_attr"),
-                        nodes.ImportedName(__name__ + ".importable_object"),
-                        self.context_reference_node_cls(),
-                    ],
-                )
-            ]
-        ).set_lineno(next(parser.stream).lineno)
+        return nodes.Output([
+            self.call_method(
+                "_dump",
+                [
+                    nodes.EnvironmentAttribute("sandboxed"),
+                    self.attr("ext_attr"),
+                    nodes.ImportedName(__name__ + ".importable_object"),
+                    self.context_reference_node_cls(),
+                ],
+            )
+        ]).set_lineno(next(parser.stream).lineno)
 
     def _dump(self, sandboxed, ext_attr, imported_object, context):
-        return (
-            f"{sandboxed}|{ext_attr}|{imported_object}|{context.blocks}"
-            f"|{context.get('test_var')}"
-        )
+        return (f"{sandboxed}|{ext_attr}|{imported_object}|{context.blocks}"
+                f"|{context.get('test_var')}")
 
 
 class DerivedExampleExtension(ExampleExtension):
@@ -197,7 +196,7 @@ class StreamFilterExtension(Extension):
             match = _gettext_re.search(token.value, pos)
             if match is None:
                 break
-            value = token.value[pos : match.start()]
+            value = token.value[pos:match.start()]
             if value:
                 yield Token(lineno, "data", value)
             lineno += count_newlines(token.value)
@@ -215,39 +214,34 @@ class StreamFilterExtension(Extension):
 class TestExtensions:
     def test_extend_late(self):
         env = Environment()
-        t = env.from_string('{% autoescape true %}{{ "<test>" }}{% endautoescape %}')
+        t = env.from_string(
+            '{% autoescape true %}{{ "<test>" }}{% endautoescape %}')
         assert t.render() == "&lt;test&gt;"
 
     def test_loop_controls(self):
         env = Environment(extensions=["jinja2.ext.loopcontrols"])
 
-        tmpl = env.from_string(
-            """
+        tmpl = env.from_string("""
             {%- for item in [1, 2, 3, 4] %}
                 {%- if item % 2 == 0 %}{% continue %}{% endif -%}
                 {{ item }}
-            {%- endfor %}"""
-        )
+            {%- endfor %}""")
         assert tmpl.render() == "13"
 
-        tmpl = env.from_string(
-            """
+        tmpl = env.from_string("""
             {%- for item in [1, 2, 3, 4] %}
                 {%- if item > 2 %}{% break %}{% endif -%}
                 {{ item }}
-            {%- endfor %}"""
-        )
+            {%- endfor %}""")
         assert tmpl.render() == "12"
 
     def test_do(self):
         env = Environment(extensions=["jinja2.ext.do"])
-        tmpl = env.from_string(
-            """
+        tmpl = env.from_string("""
             {%- set items = [] %}
             {%- for char in "foo" %}
                 {%- do items.append(loop.index0 ~ char) %}
-            {%- endfor %}{{ items|join(', ') }}"""
-        )
+            {%- endfor %}{{ items|join(', ') }}""")
         assert tmpl.render() == "0f, 1o, 2o"
 
     def test_extension_nodes(self):
@@ -263,8 +257,7 @@ class TestExtensions:
     def test_contextreference_node_can_pass_locals(self):
         env = Environment(extensions=[DerivedExampleExtension])
         tmpl = env.from_string(
-            '{% for test_var in ["test_content"] %}{% test %}{% endfor %}'
-        )
+            '{% for test_var in ["test_content"] %}{% test %}{% endfor %}')
         assert tmpl.render() == "False|42|23|{}|test_content"
 
     def test_identifier(self):
@@ -317,7 +310,8 @@ class TestInternationalization:
 
     def test_trans_plural(self):
         tmpl = i18n_env.get_template("plural.html")
-        assert tmpl.render(LANGUAGE="de", user_count=1) == "Ein Benutzer online"
+        assert tmpl.render(LANGUAGE="de",
+                           user_count=1) == "Ein Benutzer online"
         assert tmpl.render(LANGUAGE="de", user_count=2) == "2 Benutzer online"
 
     def test_trans_plural_with_functions(self):
@@ -328,14 +322,14 @@ class TestInternationalization:
             return 1
 
         get_user_count.called = 0
-        assert tmpl.render(LANGUAGE="de", get_user_count=get_user_count) == "1s"
+        assert tmpl.render(LANGUAGE="de",
+                           get_user_count=get_user_count) == "1s"
         assert get_user_count.called == 1
 
     def test_complex_plural(self):
         tmpl = i18n_env.from_string(
             "{% trans foo=42, count=2 %}{{ count }} item{% "
-            "pluralize count %}{{ count }} items{% endtrans %}"
-        )
+            "pluralize count %}{{ count }} items{% endtrans %}")
         assert tmpl.render() == "2 items"
         pytest.raises(
             TemplateAssertionError,
@@ -349,8 +343,7 @@ class TestInternationalization:
 
     def test_trimmed(self):
         tmpl = i18n_env.from_string(
-            "{%- trans trimmed %}  hello\n  world  {% endtrans -%}"
-        )
+            "{%- trans trimmed %}  hello\n  world  {% endtrans -%}")
         assert tmpl.render() == "hello world"
 
     def test_trimmed_policy(self):
@@ -362,14 +355,12 @@ class TestInternationalization:
 
     def test_trimmed_policy_override(self):
         tmpl = i18n_env_trimmed.from_string(
-            "{%- trans notrimmed %}  hello\n  world  {% endtrans -%}"
-        )
+            "{%- trans notrimmed %}  hello\n  world  {% endtrans -%}")
         assert tmpl.render() == "  hello\n  world  "
 
     def test_trimmed_vars(self):
         tmpl = i18n_env.from_string(
-            '{%- trans trimmed x="world" %}  hello\n  {{ x }} {% endtrans -%}'
-        )
+            '{%- trans trimmed x="world" %}  hello\n  {{ x }} {% endtrans -%}')
         assert tmpl.render() == "hello world"
 
     def test_trimmed_varname_trimmed(self):
@@ -383,86 +374,88 @@ class TestInternationalization:
     def test_extract(self):
         from jinja2.ext import babel_extract
 
-        source = BytesIO(
-            b"""
+        source = BytesIO(b"""
             {{ gettext('Hello World') }}
             {% trans %}Hello World{% endtrans %}
             {% trans %}{{ users }} user{% pluralize %}{{ users }} users{% endtrans %}
-            """
-        )
-        assert list(babel_extract(source, ("gettext", "ngettext", "_"), [], {})) == [
-            (2, "gettext", "Hello World", []),
-            (3, "gettext", "Hello World", []),
-            (4, "ngettext", ("%(users)s user", "%(users)s users", None), []),
+            """)
+        assert list(babel_extract(source, ("gettext", "ngettext", "_"), [],
+                                  {})) == [
+                                      (2, "gettext", "Hello World", []),
+                                      (3, "gettext", "Hello World", []),
+                                      (4, "ngettext",
+                                       ("%(users)s user", "%(users)s users",
+                                        None), []),
         ]
 
     def test_extract_trimmed(self):
         from jinja2.ext import babel_extract
 
-        source = BytesIO(
-            b"""
+        source = BytesIO(b"""
             {{ gettext(' Hello  \n  World') }}
             {% trans trimmed %} Hello  \n  World{% endtrans %}
             {% trans trimmed %}{{ users }} \n user
             {%- pluralize %}{{ users }} \n users{% endtrans %}
-            """
-        )
-        assert list(babel_extract(source, ("gettext", "ngettext", "_"), [], {})) == [
-            (2, "gettext", " Hello  \n  World", []),
-            (4, "gettext", "Hello World", []),
-            (6, "ngettext", ("%(users)s user", "%(users)s users", None), []),
+            """)
+        assert list(babel_extract(source, ("gettext", "ngettext", "_"), [],
+                                  {})) == [
+                                      (2, "gettext", " Hello  \n  World", []),
+                                      (4, "gettext", "Hello World", []),
+                                      (6, "ngettext",
+                                       ("%(users)s user", "%(users)s users",
+                                        None), []),
         ]
 
     def test_extract_trimmed_option(self):
         from jinja2.ext import babel_extract
 
-        source = BytesIO(
-            b"""
+        source = BytesIO(b"""
             {{ gettext(' Hello  \n  World') }}
             {% trans %} Hello  \n  World{% endtrans %}
             {% trans %}{{ users }} \n user
             {%- pluralize %}{{ users }} \n users{% endtrans %}
-            """
-        )
+            """)
         opts = {"trimmed": "true"}
-        assert list(babel_extract(source, ("gettext", "ngettext", "_"), [], opts)) == [
-            (2, "gettext", " Hello  \n  World", []),
-            (4, "gettext", "Hello World", []),
-            (6, "ngettext", ("%(users)s user", "%(users)s users", None), []),
+        assert list(
+            babel_extract(source, ("gettext", "ngettext", "_"), [], opts)) == [
+                (2, "gettext", " Hello  \n  World", []),
+                (4, "gettext", "Hello World", []),
+                (6, "ngettext", ("%(users)s user", "%(users)s users", None),
+                 []),
         ]
 
     def test_comment_extract(self):
         from jinja2.ext import babel_extract
 
-        source = BytesIO(
-            b"""
+        source = BytesIO(b"""
             {# trans first #}
             {{ gettext('Hello World') }}
             {% trans %}Hello World{% endtrans %}{# trans second #}
             {#: third #}
             {% trans %}{{ users }} user{% pluralize %}{{ users }} users{% endtrans %}
-            """
-        )
+            """)
         assert list(
-            babel_extract(source, ("gettext", "ngettext", "_"), ["trans", ":"], {})
-        ) == [
-            (3, "gettext", "Hello World", ["first"]),
-            (4, "gettext", "Hello World", ["second"]),
-            (6, "ngettext", ("%(users)s user", "%(users)s users", None), ["third"]),
+            babel_extract(source, ("gettext", "ngettext", "_"), ["trans", ":"],
+                          {})) == [
+                              (3, "gettext", "Hello World", ["first"]),
+                              (4, "gettext", "Hello World", ["second"]),
+                              (6, "ngettext", ("%(users)s user",
+                                               "%(users)s users", None),
+                               ["third"]),
         ]
 
     def test_extract_context(self):
         from jinja2.ext import babel_extract
 
-        source = BytesIO(
-            b"""
+        source = BytesIO(b"""
              {{ pgettext("babel", "Hello World") }}
              {{ npgettext("babel", "%(users)s user", "%(users)s users", users) }}
-             """
-        )
-        assert list(babel_extract(source, ("pgettext", "npgettext", "_"), [], {})) == [
-            (2, "pgettext", ("babel", "Hello World"), []),
-            (3, "npgettext", ("babel", "%(users)s user", "%(users)s users", None), []),
+             """)
+        assert list(
+            babel_extract(source, ("pgettext", "npgettext", "_"), [], {})) == [
+                (2, "pgettext", ("babel", "Hello World"), []),
+                (3, "npgettext", ("babel", "%(users)s user", "%(users)s users",
+                                  None), []),
         ]
 
 
@@ -482,20 +475,19 @@ class TestScope:
                     target = parser.parse_assign_target()
                     parser.stream.expect("assign")
                     expr = parser.parse_expression()
-                    assignments.append(nodes.Assign(target, expr, lineno=lineno))
+                    assignments.append(
+                        nodes.Assign(target, expr, lineno=lineno))
                 node.body = assignments + list(
-                    parser.parse_statements(("name:endscope",), drop_needle=True)
-                )
+                    parser.parse_statements(
+                        ("name:endscope", ), drop_needle=True))
                 return node
 
         env = Environment(extensions=[ScopeExt])
-        tmpl = env.from_string(
-            """\
+        tmpl = env.from_string("""\
         {%- scope a=1, b=2, c=b, d=e, e=5 -%}
             {{ a }}|{{ b }}|{{ c }}|{{ d }}|{{ e }}
         {%- endscope -%}
-        """
-        )
+        """)
         assert tmpl.render(b=3, e=4) == "1|2|2|4|5"
 
 
@@ -506,14 +498,14 @@ class TestNewstyleInternationalization:
 
     def test_trans_plural(self):
         tmpl = newstyle_i18n_env.get_template("plural.html")
-        assert tmpl.render(LANGUAGE="de", user_count=1) == "Ein Benutzer online"
+        assert tmpl.render(LANGUAGE="de",
+                           user_count=1) == "Ein Benutzer online"
         assert tmpl.render(LANGUAGE="de", user_count=2) == "2 Benutzer online"
 
     def test_complex_plural(self):
         tmpl = newstyle_i18n_env.from_string(
             "{% trans foo=42, count=2 %}{{ count }} item{% "
-            "pluralize count %}{{ count }} items{% endtrans %}"
-        )
+            "pluralize count %}{{ count }} items{% endtrans %}")
         assert tmpl.render() == "2 items"
         pytest.raises(
             TemplateAssertionError,
@@ -537,19 +529,15 @@ class TestNewstyleInternationalization:
             lambda s, p, n: s,
             newstyle=True,
         )
-        t = env.from_string(
-            '{% autoescape ae %}{{ gettext("foo", name='
-            '"<test>") }}{% endautoescape %}'
-        )
+        t = env.from_string('{% autoescape ae %}{{ gettext("foo", name='
+                            '"<test>") }}{% endautoescape %}')
         assert t.render(ae=True) == "<strong>Wert: &lt;test&gt;</strong>"
         assert t.render(ae=False) == "<strong>Wert: <test></strong>"
 
     def test_autoescape_macros(self):
         env = Environment(autoescape=False)
-        template = (
-            "{% macro m() %}<html>{% endmacro %}"
-            "{% autoescape true %}{{ m() }}{% endautoescape %}"
-        )
+        template = ("{% macro m() %}<html>{% endmacro %}"
+                    "{% autoescape true %}{{ m() }}{% endautoescape %}")
         assert env.from_string(template).render() == "<html>"
 
     def test_num_used_twice(self):
@@ -568,10 +556,8 @@ class TestNewstyleInternationalization:
         # that the generated code does not pass num twice (although that
         # would work) for better performance.  This only works on the
         # newstyle gettext of course
-        assert (
-            re.search(r"u?'%\(num\)s apple', u?'%\(num\)s apples', 3", source)
-            is not None
-        )
+        assert (re.search(r"u?'%\(num\)s apple', u?'%\(num\)s apples', 3",
+                          source) is not None)
 
     def test_trans_vars(self):
         t1 = newstyle_i18n_env.get_template("transvars1.html")
@@ -602,15 +588,13 @@ class TestNewstyleInternationalization:
 class TestAutoEscape:
     def test_scoped_setting(self):
         env = Environment(autoescape=True)
-        tmpl = env.from_string(
-            """
+        tmpl = env.from_string("""
             {{ "<HelloWorld>" }}
             {% autoescape false %}
                 {{ "<HelloWorld>" }}
             {% endautoescape %}
             {{ "<HelloWorld>" }}
-        """
-        )
+        """)
         assert tmpl.render().split() == [
             "&lt;HelloWorld&gt;",
             "<HelloWorld>",
@@ -618,15 +602,13 @@ class TestAutoEscape:
         ]
 
         env = Environment(autoescape=False)
-        tmpl = env.from_string(
-            """
+        tmpl = env.from_string("""
             {{ "<HelloWorld>" }}
             {% autoescape true %}
                 {{ "<HelloWorld>" }}
             {% endautoescape %}
             {{ "<HelloWorld>" }}
-        """
-        )
+        """)
         assert tmpl.render().split() == [
             "<HelloWorld>",
             "&lt;HelloWorld&gt;",
@@ -637,18 +619,14 @@ class TestAutoEscape:
         env = Environment(autoescape=True)
         tmpl = env.from_string('{{ {"foo": "<test>"}|xmlattr|escape }}')
         assert tmpl.render() == ' foo="&lt;test&gt;"'
-        tmpl = env.from_string(
-            '{% autoescape false %}{{ {"foo": "<test>"}'
-            "|xmlattr|escape }}{% endautoescape %}"
-        )
+        tmpl = env.from_string('{% autoescape false %}{{ {"foo": "<test>"}'
+                               "|xmlattr|escape }}{% endautoescape %}")
         assert tmpl.render() == " foo=&#34;&amp;lt;test&amp;gt;&#34;"
 
     def test_volatile(self):
         env = Environment(autoescape=True)
-        tmpl = env.from_string(
-            '{% autoescape foo %}{{ {"foo": "<test>"}'
-            "|xmlattr|escape }}{% endautoescape %}"
-        )
+        tmpl = env.from_string('{% autoescape foo %}{{ {"foo": "<test>"}'
+                               "|xmlattr|escape }}{% endautoescape %}")
         assert tmpl.render(foo=False) == " foo=&#34;&amp;lt;test&amp;gt;&#34;"
         assert tmpl.render(foo=True) == ' foo="&lt;test&gt;"'
 
@@ -656,8 +634,7 @@ class TestAutoEscape:
         env = Environment()
         tmpl = env.from_string(
             '{% autoescape true %}{% set x = "<x>" %}{{ x }}'
-            '{% endautoescape %}{{ x }}{{ "<y>" }}'
-        )
+            '{% endautoescape %}{{ x }}{{ "<y>" }}')
         assert tmpl.render(x=1) == "&lt;x&gt;1<y>"
 
     def test_volatile_scoping(self):
@@ -692,8 +669,8 @@ class TestAutoEscape:
             def parse(self, parser):
                 node = nodes.OverlayScope(lineno=next(parser.stream).lineno)
                 node.body = list(
-                    parser.parse_statements(("name:endoverlay",), drop_needle=True)
-                )
+                    parser.parse_statements(("name:endoverlay", ),
+                                            drop_needle=True))
                 node.context = self.call_method("get_scope")
                 return node
 
@@ -702,13 +679,11 @@ class TestAutoEscape:
 
         env = Environment(extensions=[MagicScopeExtension])
 
-        tmpl = env.from_string(
-            """
+        tmpl = env.from_string("""
             {{- x }}|{% set z = 99 %}
             {%- overlay %}
                 {{- y }}|{{ z }}|{% for item in x %}[{{ item }}]{% endfor %}
             {%- endoverlay %}|
             {{- x -}}
-        """
-        )
+        """)
         assert tmpl.render(x=42, y=23) == "42|23|99|[1][2][3]|42"

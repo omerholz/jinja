@@ -3,8 +3,7 @@ import math
 import pytest
 
 from jinja2.exceptions import UndefinedError
-from jinja2.nativetypes import NativeEnvironment
-from jinja2.nativetypes import NativeTemplate
+from jinja2.nativetypes import NativeEnvironment, NativeTemplate
 from jinja2.runtime import Undefined
 
 

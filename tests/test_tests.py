@@ -1,9 +1,7 @@
 import pytest
 from markupsafe import Markup
 
-from jinja2 import Environment
-from jinja2 import TemplateAssertionError
-from jinja2 import TemplateRuntimeError
+from jinja2 import Environment, TemplateAssertionError, TemplateRuntimeError
 
 
 class MyDict(dict):
@@ -12,7 +10,8 @@ class MyDict(dict):
 
 class TestTestsCase:
     def test_defined(self, env):
-        tmpl = env.from_string("{{ missing is defined }}|{{ true is defined }}")
+        tmpl = env.from_string(
+            "{{ missing is defined }}|{{ true is defined }}")
         assert tmpl.render() == "False|True"
 
     def test_even(self, env):
@@ -119,20 +118,16 @@ class TestTestsCase:
         assert tmpl.render() == "True|False"
 
     def test_equalto(self, env):
-        tmpl = env.from_string(
-            "{{ foo is eq 12 }}|"
-            "{{ foo is eq 0 }}|"
-            "{{ foo is eq (3 * 4) }}|"
-            '{{ bar is eq "baz" }}|'
-            '{{ bar is eq "zab" }}|'
-            '{{ bar is eq ("ba" + "z") }}|'
-            "{{ bar is eq bar }}|"
-            "{{ bar is eq foo }}"
-        )
-        assert (
-            tmpl.render(foo=12, bar="baz")
-            == "True|False|True|True|False|True|True|False"
-        )
+        tmpl = env.from_string("{{ foo is eq 12 }}|"
+                               "{{ foo is eq 0 }}|"
+                               "{{ foo is eq (3 * 4) }}|"
+                               '{{ bar is eq "baz" }}|'
+                               '{{ bar is eq "zab" }}|'
+                               '{{ bar is eq ("ba" + "z") }}|'
+                               "{{ bar is eq bar }}|"
+                               "{{ bar is eq foo }}")
+        assert (tmpl.render(
+            foo=12, bar="baz") == "True|False|True|True|False|True|True|False")
 
     @pytest.mark.parametrize(
         "op,expect",
@@ -156,7 +151,8 @@ class TestTestsCase:
         assert t.render() == str(expect)
 
     def test_sameas(self, env):
-        tmpl = env.from_string("{{ foo is sameas false }}|{{ 0 is sameas false }}")
+        tmpl = env.from_string(
+            "{{ foo is sameas false }}|{{ 0 is sameas false }}")
         assert tmpl.render(foo=False) == "True|False"
 
     def test_no_paren_for_arg1(self, env):
@@ -169,7 +165,8 @@ class TestTestsCase:
         assert tmpl.render(x="foo", y=Markup("foo")) == "False|True"
 
     def test_greaterthan(self, env):
-        tmpl = env.from_string("{{ 1 is greaterthan 0 }}|{{ 0 is greaterthan 1 }}")
+        tmpl = env.from_string(
+            "{{ 1 is greaterthan 0 }}|{{ 0 is greaterthan 1 }}")
         assert tmpl.render() == "True|False"
 
     def test_lessthan(self, env):
@@ -187,8 +184,7 @@ class TestTestsCase:
         env.tests["matching"] = matching
         tmpl = env.from_string(
             "{{ 'us-west-1' is matching '(us-east-1|ap-northeast-1)'"
-            " or 'stage' is matching '(dev|stage)' }}"
-        )
+            " or 'stage' is matching '(dev|stage)' }}")
         assert tmpl.render() == "False"
         assert items == [
             ("us-west-1", "(us-east-1|ap-northeast-1)"),
@@ -196,18 +192,17 @@ class TestTestsCase:
         ]
 
     def test_in(self, env):
-        tmpl = env.from_string(
-            '{{ "o" is in "foo" }}|'
-            '{{ "foo" is in "foo" }}|'
-            '{{ "b" is in "foo" }}|'
-            "{{ 1 is in ((1, 2)) }}|"
-            "{{ 3 is in ((1, 2)) }}|"
-            "{{ 1 is in [1, 2] }}|"
-            "{{ 3 is in [1, 2] }}|"
-            '{{ "foo" is in {"foo": 1}}}|'
-            '{{ "baz" is in {"bar": 1}}}'
-        )
-        assert tmpl.render() == "True|True|False|True|False|True|False|True|False"
+        tmpl = env.from_string('{{ "o" is in "foo" }}|'
+                               '{{ "foo" is in "foo" }}|'
+                               '{{ "b" is in "foo" }}|'
+                               "{{ 1 is in ((1, 2)) }}|"
+                               "{{ 3 is in ((1, 2)) }}|"
+                               "{{ 1 is in [1, 2] }}|"
+                               "{{ 3 is in [1, 2] }}|"
+                               '{{ "foo" is in {"foo": 1}}}|'
+                               '{{ "baz" is in {"bar": 1}}}')
+        assert tmpl.render(
+        ) == "True|True|False|True|False|True|False|True|False"
 
 
 def test_name_undefined(env):

@@ -4,10 +4,7 @@ from traceback import format_exception
 
 import pytest
 
-from jinja2 import ChoiceLoader
-from jinja2 import DictLoader
-from jinja2 import Environment
-from jinja2 import TemplateSyntaxError
+from jinja2 import ChoiceLoader, DictLoader, Environment, TemplateSyntaxError
 
 
 @pytest.fixture
@@ -78,14 +75,10 @@ to be closed is 'for'.
         assert original.name == unpickled.name
 
     def test_include_syntax_error_source(self, filesystem_loader):
-        e = Environment(
-            loader=ChoiceLoader(
-                [
-                    filesystem_loader,
-                    DictLoader({"inc": "a\n{% include 'syntaxerror.html' %}\nb"}),
-                ]
-            )
-        )
+        e = Environment(loader=ChoiceLoader([
+            filesystem_loader,
+            DictLoader({"inc": "a\n{% include 'syntaxerror.html' %}\nb"}),
+        ]))
         t = e.get_template("inc")
 
         with pytest.raises(TemplateSyntaxError) as exc_info:
@@ -97,16 +90,14 @@ to be closed is 'for'.
         from jinja2.debug import get_template_locals
         from jinja2.runtime import missing
 
-        locals = get_template_locals(
-            {
-                "l_0_foo": 42,
-                "l_1_foo": 23,
-                "l_2_foo": 13,
-                "l_0_bar": 99,
-                "l_1_bar": missing,
-                "l_0_baz": missing,
-            }
-        )
+        locals = get_template_locals({
+            "l_0_foo": 42,
+            "l_1_foo": 23,
+            "l_2_foo": 13,
+            "l_0_bar": 99,
+            "l_1_bar": missing,
+            "l_0_baz": missing,
+        })
         assert locals == {"foo": 13, "bar": 99}
 
     def test_get_corresponding_lineno_traceback(self, fs_env):

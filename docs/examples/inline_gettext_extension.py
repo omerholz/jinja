@@ -2,9 +2,7 @@ import re
 
 from jinja2.exceptions import TemplateSyntaxError
 from jinja2.ext import Extension
-from jinja2.lexer import count_newlines
-from jinja2.lexer import Token
-
+from jinja2.lexer import Token, count_newlines
 
 _outside_re = re.compile(r"\\?(gettext|_)\(")
 _inside_re = re.compile(r"\\?[()]")

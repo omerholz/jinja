@@ -4,8 +4,7 @@ interesting for introspection.
 import typing as t
 
 from . import nodes
-from .compiler import CodeGenerator
-from .compiler import Frame
+from .compiler import CodeGenerator, Frame
 
 if t.TYPE_CHECKING:
     from .environment import Environment
@@ -55,10 +54,12 @@ def find_undeclared_variables(ast: nodes.Template) -> t.Set[str]:
 
 
 _ref_types = (nodes.Extends, nodes.FromImport, nodes.Import, nodes.Include)
-_RefType = t.Union[nodes.Extends, nodes.FromImport, nodes.Import, nodes.Include]
+_RefType = t.Union[nodes.Extends, nodes.FromImport, nodes.Import,
+                   nodes.Include]
 
 
-def find_referenced_templates(ast: nodes.Template) -> t.Iterator[t.Optional[str]]:
+def find_referenced_templates(
+        ast: nodes.Template) -> t.Iterator[t.Optional[str]]:
     """Finds all the referenced templates from the AST.  This will return an
     iterator over all the hardcoded template extensions, inclusions and
     imports.  If dynamic inheritance or inclusion is used, `None` will be
@@ -101,8 +102,7 @@ def find_referenced_templates(ast: nodes.Template) -> t.Iterator[t.Optional[str]
         # yield the consts that are strings.  We could warn here for
         # non string values
         elif isinstance(node, nodes.Include) and isinstance(
-            template.value, (tuple, list)
-        ):
+                template.value, (tuple, list)):
             for template_name in template.value:
                 if isinstance(template_name, str):
                     yield template_name

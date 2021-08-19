@@ -7,55 +7,55 @@ import typing
 import typing as t
 import weakref
 from collections import ChainMap
-from functools import lru_cache
-from functools import partial
-from functools import reduce
+from functools import lru_cache, partial, reduce
 from types import CodeType
 
 from markupsafe import Markup
 
 from . import nodes
-from .compiler import CodeGenerator
-from .compiler import generate
-from .defaults import BLOCK_END_STRING
-from .defaults import BLOCK_START_STRING
-from .defaults import COMMENT_END_STRING
-from .defaults import COMMENT_START_STRING
-from .defaults import DEFAULT_FILTERS
-from .defaults import DEFAULT_NAMESPACE
-from .defaults import DEFAULT_POLICIES
-from .defaults import DEFAULT_TESTS
-from .defaults import KEEP_TRAILING_NEWLINE
-from .defaults import LINE_COMMENT_PREFIX
-from .defaults import LINE_STATEMENT_PREFIX
-from .defaults import LSTRIP_BLOCKS
-from .defaults import NEWLINE_SEQUENCE
-from .defaults import TRIM_BLOCKS
-from .defaults import VARIABLE_END_STRING
-from .defaults import VARIABLE_START_STRING
-from .exceptions import TemplateNotFound
-from .exceptions import TemplateRuntimeError
-from .exceptions import TemplatesNotFound
-from .exceptions import TemplateSyntaxError
-from .exceptions import UndefinedError
-from .lexer import get_lexer
-from .lexer import Lexer
-from .lexer import TokenStream
+from .compiler import CodeGenerator, generate
+from .defaults import (
+    BLOCK_END_STRING,
+    BLOCK_START_STRING,
+    COMMENT_END_STRING,
+    COMMENT_START_STRING,
+    DEFAULT_FILTERS,
+    DEFAULT_NAMESPACE,
+    DEFAULT_POLICIES,
+    DEFAULT_TESTS,
+    KEEP_TRAILING_NEWLINE,
+    LINE_COMMENT_PREFIX,
+    LINE_STATEMENT_PREFIX,
+    LSTRIP_BLOCKS,
+    NEWLINE_SEQUENCE,
+    TRIM_BLOCKS,
+    VARIABLE_END_STRING,
+    VARIABLE_START_STRING,
+)
+from .exceptions import (
+    TemplateNotFound,
+    TemplateRuntimeError,
+    TemplatesNotFound,
+    TemplateSyntaxError,
+    UndefinedError,
+)
+from .lexer import Lexer, TokenStream, get_lexer
 from .nodes import EvalContext
 from .parser import Parser
-from .runtime import Context
-from .runtime import new_context
-from .runtime import Undefined
-from .utils import _PassArg
-from .utils import concat
-from .utils import consume
-from .utils import import_string
-from .utils import internalcode
-from .utils import LRUCache
-from .utils import missing
+from .runtime import Context, Undefined, new_context
+from .utils import (
+    LRUCache,
+    _PassArg,
+    concat,
+    consume,
+    import_string,
+    internalcode,
+    missing,
+)
 
 if t.TYPE_CHECKING:
     import typing_extensions as te
+
     from .bccache import BytecodeCache
     from .ext import Extension
     from .loaders import BaseLoader
@@ -65,7 +65,8 @@ _env_bound = t.TypeVar("_env_bound", bound="Environment")
 
 # for direct template usage we have up to ten living environments
 @lru_cache(maxsize=10)
-def get_spontaneous_environment(cls: t.Type[_env_bound], *args: t.Any) -> _env_bound:
+def get_spontaneous_environment(cls: t.Type[_env_bound],
+                                *args: t.Any) -> _env_bound:
     """Return a new spontaneous environment. A spontaneous environment
     is used for templates created directly rather than through an
     existing environment.
@@ -125,13 +126,11 @@ def load_extensions(
 def _environment_config_check(environment: "Environment") -> "Environment":
     """Perform a sanity check on the environment."""
     assert issubclass(
-        environment.undefined, Undefined
-    ), "'undefined' must be a subclass of 'jinja2.Undefined'."
-    assert (
-        environment.block_start_string
-        != environment.variable_start_string
-        != environment.comment_start_string
-    ), "block, variable and comment start strings must be different."
+        environment.undefined,
+        Undefined), "'undefined' must be a subclass of 'jinja2.Undefined'."
+    assert (environment.block_start_string != environment.variable_start_string !=
+            environment.comment_start_string
+            ), "block, variable and comment start strings must be different."
     assert environment.newline_sequence in {
         "\r",
         "\r\n",
@@ -300,7 +299,8 @@ class Environment:
         line_comment_prefix: t.Optional[str] = LINE_COMMENT_PREFIX,
         trim_blocks: bool = TRIM_BLOCKS,
         lstrip_blocks: bool = LSTRIP_BLOCKS,
-        newline_sequence: "te.Literal['\\n', '\\r\\n', '\\r']" = NEWLINE_SEQUENCE,
+        newline_sequence:
+        "te.Literal['\\n', '\\r\\n', '\\r']" = NEWLINE_SEQUENCE,
         keep_trailing_newline: bool = KEEP_TRAILING_NEWLINE,
         extensions: t.Sequence[t.Union[str, t.Type["Extension"]]] = (),
         optimized: bool = True,
@@ -364,7 +364,8 @@ class Environment:
         self.is_async = enable_async
         _environment_config_check(self)
 
-    def add_extension(self, extension: t.Union[str, t.Type["Extension"]]) -> None:
+    def add_extension(self, extension: t.Union[str,
+                                               t.Type["Extension"]]) -> None:
         """Adds an extension after the environment was created.
 
         .. versionadded:: 2.5
@@ -396,7 +397,8 @@ class Environment:
         optimized: bool = missing,
         undefined: t.Type[Undefined] = missing,
         finalize: t.Optional[t.Callable[..., t.Any]] = missing,
-        autoescape: t.Union[bool, t.Callable[[t.Optional[str]], bool]] = missing,
+        autoescape: t.Union[bool, t.Callable[[t.Optional[str]],
+                                             bool]] = missing,
         loader: t.Optional["BaseLoader"] = missing,
         cache_size: int = missing,
         auto_reload: bool = missing,
@@ -447,9 +449,8 @@ class Environment:
         """Iterates over the extensions by priority."""
         return iter(sorted(self.extensions.values(), key=lambda x: x.priority))
 
-    def getitem(
-        self, obj: t.Any, argument: t.Union[str, t.Any]
-    ) -> t.Union[t.Any, Undefined]:
+    def getitem(self, obj: t.Any,
+                argument: t.Union[str, t.Any]) -> t.Union[t.Any, Undefined]:
         """Get an item or attribute of an object but prefer the item."""
         try:
             return obj[argument]
@@ -550,9 +551,8 @@ class Environment:
 
         .. versionadded:: 2.7
         """
-        return self._filter_test_common(
-            name, value, args, kwargs, context, eval_ctx, True
-        )
+        return self._filter_test_common(name, value, args, kwargs, context,
+                                        eval_ctx, True)
 
     def call_test(
         self,
@@ -575,9 +575,8 @@ class Environment:
 
         .. versionadded:: 2.7
         """
-        return self._filter_test_common(
-            name, value, args, kwargs, context, eval_ctx, False
-        )
+        return self._filter_test_common(name, value, args, kwargs, context,
+                                        eval_ctx, False)
 
     @internalcode
     def parse(
@@ -599,9 +598,8 @@ class Environment:
         except TemplateSyntaxError:
             self.handle_exception(source=source)
 
-    def _parse(
-        self, source: str, name: t.Optional[str], filename: t.Optional[str]
-    ) -> nodes.Template:
+    def _parse(self, source: str, name: t.Optional[str],
+               filename: t.Optional[str]) -> nodes.Template:
         """Internal parsing function used by `parse` and `compile`."""
         return Parser(self, source, name, filename).parse()
 
@@ -747,7 +745,10 @@ class Environment:
             if isinstance(source, str):
                 source_hint = source
                 source = self._parse(source, name, filename)
-            source = self._generate(source, name, filename, defer_init=defer_init)
+            source = self._generate(source,
+                                    name,
+                                    filename,
+                                    defer_init=defer_init)
             if raw:
                 return source
             if filename is None:
@@ -757,8 +758,9 @@ class Environment:
             self.handle_exception(source=source_hint)
 
     def compile_expression(
-        self, source: str, undefined_to_none: bool = True
-    ) -> "TemplateExpression":
+            self,
+            source: str,
+            undefined_to_none: bool = True) -> "TemplateExpression":
         """A handy helper method that returns a callable that accepts keyword
         arguments that appear as variables in the expression.  If called it
         returns the result of the expression.
@@ -790,9 +792,9 @@ class Environment:
         try:
             expr = parser.parse_expression()
             if not parser.stream.eos:
-                raise TemplateSyntaxError(
-                    "chunk after expression", parser.stream.current.lineno, None, None
-                )
+                raise TemplateSyntaxError("chunk after expression",
+                                          parser.stream.current.lineno, None,
+                                          None)
             expr.set_environment(self)
         except TemplateSyntaxError:
             self.handle_exception(source=source)
@@ -847,11 +849,11 @@ class Environment:
                     f.write(data.encode("utf8"))
 
         if zip is not None:
-            from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED, ZIP_STORED
+            from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile, ZipInfo
 
             zip_file = ZipFile(
-                target, "w", dict(deflated=ZIP_DEFLATED, stored=ZIP_STORED)[zip]
-            )
+                target, "w",
+                dict(deflated=ZIP_DEFLATED, stored=ZIP_STORED)[zip])
             log_function(f"Compiling into Zip archive {target!r}")
         else:
             if not os.path.isdir(target):
@@ -909,14 +911,16 @@ class Environment:
                 )
 
             def filter_func(x: str) -> bool:
-                return "." in x and x.rsplit(".", 1)[1] in extensions  # type: ignore
+                return "." in x and x.rsplit(
+                    ".", 1)[1] in extensions  # type: ignore
 
         if filter_func is not None:
             names = [name for name in names if filter_func(name)]
 
         return names
 
-    def handle_exception(self, source: t.Optional[str] = None) -> "te.NoReturn":
+    def handle_exception(self,
+                         source: t.Optional[str] = None) -> "te.NoReturn":
         """Exception handling helper.  This is used internally to either raise
         rewritten exceptions or return a rendered traceback for the template.
         """
@@ -938,16 +942,15 @@ class Environment:
 
     @internalcode
     def _load_template(
-        self, name: str, globals: t.Optional[t.Mapping[str, t.Any]]
-    ) -> "Template":
+            self, name: str,
+            globals: t.Optional[t.Mapping[str, t.Any]]) -> "Template":
         if self.loader is None:
             raise TypeError("no loader for this environment specified")
         cache_key = (weakref.ref(self.loader), name)
         if self.cache is not None:
             template = self.cache.get(cache_key)
-            if template is not None and (
-                not self.auto_reload or template.is_up_to_date
-            ):
+            if template is not None and (not self.auto_reload or
+                                         template.is_up_to_date):
                 # template.globals is a ChainMap, modifying it will only
                 # affect the template, not the environment globals.
                 if globals:
@@ -1036,8 +1039,7 @@ class Environment:
 
         if not names:
             raise TemplatesNotFound(
-                message="Tried to select from an empty list of templates."
-            )
+                message="Tried to select from an empty list of templates.")
 
         for name in names:
             if isinstance(name, Template):
@@ -1053,9 +1055,8 @@ class Environment:
     @internalcode
     def get_or_select_template(
         self,
-        template_name_or_list: t.Union[
-            str, "Template", t.List[t.Union[str, "Template"]]
-        ],
+        template_name_or_list: t.Union[str, "Template",
+                                       t.List[t.Union[str, "Template"]]],
         parent: t.Optional[str] = None,
         globals: t.Optional[t.Mapping[str, t.Any]] = None,
     ) -> "Template":
@@ -1092,8 +1093,9 @@ class Environment:
         return cls.from_code(self, self.compile(source), gs, None)
 
     def make_globals(
-        self, d: t.Optional[t.Mapping[str, t.Any]]
-    ) -> t.MutableMapping[str, t.Any]:
+            self,
+            d: t.Optional[t.Mapping[str,
+                                    t.Any]]) -> t.MutableMapping[str, t.Any]:
         """Make the globals map for a template. Any given template
         globals overlay the environment :attr:`globals`.
 
@@ -1171,7 +1173,8 @@ class Template:
         line_comment_prefix: t.Optional[str] = LINE_COMMENT_PREFIX,
         trim_blocks: bool = TRIM_BLOCKS,
         lstrip_blocks: bool = LSTRIP_BLOCKS,
-        newline_sequence: "te.Literal['\\n', '\\r\\n', '\\r']" = NEWLINE_SEQUENCE,
+        newline_sequence:
+        "te.Literal['\\n', '\\r\\n', '\\r']" = NEWLINE_SEQUENCE,
         keep_trailing_newline: bool = KEEP_TRAILING_NEWLINE,
         extensions: t.Sequence[t.Union[str, t.Type["Extension"]]] = (),
         optimized: bool = True,
@@ -1291,7 +1294,8 @@ class Template:
                     close = True
 
             try:
-                return loop.run_until_complete(self.render_async(*args, **kwargs))
+                return loop.run_until_complete(
+                    self.render_async(*args, **kwargs))
             finally:
                 if close:
                     loop.close()
@@ -1314,13 +1318,13 @@ class Template:
         """
         if not self.environment.is_async:
             raise RuntimeError(
-                "The environment was not created with async mode enabled."
-            )
+                "The environment was not created with async mode enabled.")
 
         ctx = self.new_context(dict(*args, **kwargs))
 
         try:
-            return concat([n async for n in self.root_render_func(ctx)])  # type: ignore
+            return concat([n async for n in self.root_render_func(ctx)
+                           ])  # type: ignore
         except Exception:
             return self.environment.handle_exception()
 
@@ -1360,16 +1364,14 @@ class Template:
         except Exception:
             yield self.environment.handle_exception()
 
-    async def generate_async(
-        self, *args: t.Any, **kwargs: t.Any
-    ) -> t.AsyncIterator[str]:
+    async def generate_async(self, *args: t.Any,
+                             **kwargs: t.Any) -> t.AsyncIterator[str]:
         """An async version of :meth:`generate`.  Works very similarly but
         returns an async iterator instead.
         """
         if not self.environment.is_async:
             raise RuntimeError(
-                "The environment was not created with async mode enabled."
-            )
+                "The environment was not created with async mode enabled.")
 
         ctx = self.new_context(dict(*args, **kwargs))
 
@@ -1392,9 +1394,8 @@ class Template:
 
         `locals` can be a dict of local variables for internal usage.
         """
-        return new_context(
-            self.environment, self.name, self.blocks, vars, shared, self.globals, locals
-        )
+        return new_context(self.environment, self.name, self.blocks, vars,
+                           shared, self.globals, locals)
 
     def make_module(
         self,
@@ -1424,11 +1425,15 @@ class Template:
         """
         ctx = self.new_context(vars, shared, locals)
         return TemplateModule(
-            self, ctx, [x async for x in self.root_render_func(ctx)]  # type: ignore
+            self,
+            ctx,
+            [x async for x in self.root_render_func(ctx)]  # type: ignore
         )
 
     @internalcode
-    def _get_default_module(self, ctx: t.Optional[Context] = None) -> "TemplateModule":
+    def _get_default_module(self,
+                            ctx: t.Optional[Context] = None
+                            ) -> "TemplateModule":
         """If a context is passed in, this means that the template was
         imported. Imported templates have access to the current
         template's globals by default, but they can only be accessed via
@@ -1454,14 +1459,16 @@ class Template:
 
         return self._module
 
-    async def _get_default_module_async(
-        self, ctx: t.Optional[Context] = None
-    ) -> "TemplateModule":
+    async def _get_default_module_async(self,
+                                        ctx: t.Optional[Context] = None
+                                        ) -> "TemplateModule":
         if ctx is not None:
             keys = ctx.globals_keys - self.globals.keys()
 
             if keys:
-                return await self.make_module_async({k: ctx.parent[k] for k in keys})
+                return await self.make_module_async(
+                    {k: ctx.parent[k]
+                     for k in keys})
 
         if self._module is None:
             self._module = await self.make_module_async()
@@ -1536,10 +1543,10 @@ class TemplateModule:
                 raise RuntimeError(
                     "Async mode requires a body stream to be passed to"
                     " a template module. Use the async methods of the"
-                    " API you are using."
-                )
+                    " API you are using.")
 
-            body_stream = list(template.root_render_func(context))  # type: ignore
+            body_stream = list(
+                template.root_render_func(context))  # type: ignore
 
         self._body_stream = body_stream
         self.__dict__.update(context.get_exported())
@@ -1617,7 +1624,8 @@ class TemplateStream:
             close = True
         try:
             if encoding is not None:
-                iterable = (x.encode(encoding, errors) for x in self)  # type: ignore
+                iterable = (x.encode(encoding, errors)
+                            for x in self)  # type: ignore
             else:
                 iterable = self  # type: ignore
 

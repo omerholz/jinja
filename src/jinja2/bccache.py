@@ -20,13 +20,17 @@ from types import CodeType
 
 if t.TYPE_CHECKING:
     import typing_extensions as te
+
     from .environment import Environment
 
     class _MemcachedClient(te.Protocol):
         def get(self, key: str) -> bytes:
             ...
 
-        def set(self, key: str, value: bytes, timeout: t.Optional[int] = None) -> None:
+        def set(self,
+                key: str,
+                value: bytes,
+                timeout: t.Optional[int] = None) -> None:
             ...
 
 
@@ -34,11 +38,8 @@ bc_version = 5
 # Magic bytes to identify Jinja bytecode cache files. Contains the
 # Python major and minor version to avoid loading incompatible bytecode
 # if a project upgrades its Python version.
-bc_magic = (
-    b"j2"
-    + pickle.dumps(bc_version, 2)
-    + pickle.dumps((sys.version_info[0] << 24) | sys.version_info[1], 2)
-)
+bc_magic = (b"j2" + pickle.dumps(bc_version, 2) + pickle.dumps(
+    (sys.version_info[0] << 24) | sys.version_info[1], 2))
 
 
 class Bucket:
@@ -50,7 +51,8 @@ class Bucket:
     cache subclasses don't have to care about cache invalidation.
     """
 
-    def __init__(self, environment: "Environment", key: str, checksum: str) -> None:
+    def __init__(self, environment: "Environment", key: str,
+                 checksum: str) -> None:
         self.environment = environment
         self.key = key
         self.checksum = checksum
@@ -147,9 +149,9 @@ class BytecodeCache:
         by a particular environment.
         """
 
-    def get_cache_key(
-        self, name: str, filename: t.Optional[t.Union[str]] = None
-    ) -> str:
+    def get_cache_key(self,
+                      name: str,
+                      filename: t.Optional[t.Union[str]] = None) -> str:
         """Returns the unique hash key for this template name."""
         hash = sha1(name.encode("utf-8"))
 
@@ -201,9 +203,9 @@ class FileSystemBytecodeCache(BytecodeCache):
     This bytecode cache supports clearing of the cache using the clear method.
     """
 
-    def __init__(
-        self, directory: t.Optional[str] = None, pattern: str = "__jinja2_%s.cache"
-    ) -> None:
+    def __init__(self,
+                 directory: t.Optional[str] = None,
+                 pattern: str = "__jinja2_%s.cache") -> None:
         if directory is None:
             directory = self._get_default_cache_dir()
         self.directory = directory
@@ -211,10 +213,8 @@ class FileSystemBytecodeCache(BytecodeCache):
 
     def _get_default_cache_dir(self) -> str:
         def _unsafe_dir() -> "te.NoReturn":
-            raise RuntimeError(
-                "Cannot determine safe temp directory.  You "
-                "need to explicitly provide one."
-            )
+            raise RuntimeError("Cannot determine safe temp directory.  You "
+                               "need to explicitly provide one.")
 
         tmpdir = tempfile.gettempdir()
 
@@ -236,28 +236,24 @@ class FileSystemBytecodeCache(BytecodeCache):
         try:
             os.chmod(actual_dir, stat.S_IRWXU)
             actual_dir_stat = os.lstat(actual_dir)
-            if (
-                actual_dir_stat.st_uid != os.getuid()
-                or not stat.S_ISDIR(actual_dir_stat.st_mode)
-                or stat.S_IMODE(actual_dir_stat.st_mode) != stat.S_IRWXU
-            ):
+            if (actual_dir_stat.st_uid != os.getuid() or
+                    not stat.S_ISDIR(actual_dir_stat.st_mode) or
+                    stat.S_IMODE(actual_dir_stat.st_mode) != stat.S_IRWXU):
                 _unsafe_dir()
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
 
         actual_dir_stat = os.lstat(actual_dir)
-        if (
-            actual_dir_stat.st_uid != os.getuid()
-            or not stat.S_ISDIR(actual_dir_stat.st_mode)
-            or stat.S_IMODE(actual_dir_stat.st_mode) != stat.S_IRWXU
-        ):
+        if (actual_dir_stat.st_uid != os.getuid() or
+                not stat.S_ISDIR(actual_dir_stat.st_mode) or
+                stat.S_IMODE(actual_dir_stat.st_mode) != stat.S_IRWXU):
             _unsafe_dir()
 
         return actual_dir
 
     def _get_cache_filename(self, bucket: Bucket) -> str:
-        return os.path.join(self.directory, self.pattern % (bucket.key,))
+        return os.path.join(self.directory, self.pattern % (bucket.key, ))
 
     def load_bytecode(self, bucket: Bucket) -> None:
         filename = self._get_cache_filename(bucket)
@@ -276,7 +272,8 @@ class FileSystemBytecodeCache(BytecodeCache):
         # normally.
         from os import remove
 
-        files = fnmatch.filter(os.listdir(self.directory), self.pattern % ("*",))
+        files = fnmatch.filter(os.listdir(self.directory),
+                               self.pattern % ("*", ))
         for filename in files:
             try:
                 remove(os.path.join(self.directory, filename))

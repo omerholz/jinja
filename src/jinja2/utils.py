@@ -4,10 +4,8 @@ import os
 import re
 import typing as t
 import warnings
-from collections import abc
-from collections import deque
-from random import choice
-from random import randrange
+from collections import abc, deque
+from random import choice, randrange
 from threading import Lock
 from types import CodeType
 from urllib.parse import quote_from_bytes
@@ -345,7 +343,7 @@ def urlize(
 
         if match:
             head = match.group()
-            middle = middle[match.end() :]
+            middle = middle[match.end():]
 
         # Unlike lead, which is anchored to the start of the string,
         # need to check that the string ends with any of the characters
@@ -355,7 +353,7 @@ def urlize(
 
             if match:
                 tail = match.group()
-                middle = middle[: match.start()]
+                middle = middle[:match.start()]
 
         # Prefer balancing parentheses in URLs instead of ignoring a
         # trailing character.
@@ -379,20 +377,14 @@ def urlize(
                     f'<a href="{middle}"{rel_attr}{target_attr}>{trim_url(middle)}</a>'
                 )
             else:
-                middle = (
-                    f'<a href="https://{middle}"{rel_attr}{target_attr}>'
-                    f"{trim_url(middle)}</a>"
-                )
+                middle = (f'<a href="https://{middle}"{rel_attr}{target_attr}>'
+                          f"{trim_url(middle)}</a>")
 
         elif middle.startswith("mailto:") and _email_re.match(middle[7:]):
             middle = f'<a href="{middle}">{middle[7:]}</a>'
 
-        elif (
-            "@" in middle
-            and not middle.startswith("www.")
-            and ":" not in middle
-            and _email_re.match(middle)
-        ):
+        elif ("@" in middle and not middle.startswith("www.") and
+              ":" not in middle and _email_re.match(middle)):
             middle = f'<a href="mailto:{middle}">{middle}</a>'
 
         elif extra_schemes is not None:
@@ -405,9 +397,10 @@ def urlize(
     return "".join(words)
 
 
-def generate_lorem_ipsum(
-    n: int = 5, html: bool = True, min: int = 20, max: int = 100
-) -> str:
+def generate_lorem_ipsum(n: int = 5,
+                         html: bool = True,
+                         min: int = 20,
+                         max: int = 100) -> str:
     """Generate some lorem ipsum for the template."""
     from .constants import LOREM_IPSUM_WORDS
 
@@ -455,9 +448,8 @@ def generate_lorem_ipsum(
 
     if not html:
         return "\n\n".join(result)
-    return markupsafe.Markup(
-        "\n".join(f"<p>{markupsafe.escape(x)}</p>" for x in result)
-    )
+    return markupsafe.Markup("\n".join(f"<p>{markupsafe.escape(x)}</p>"
+                                       for x in result))
 
 
 def url_quote(obj: t.Any, charset: str = "utf-8", for_qs: bool = False) -> str:
@@ -483,7 +475,9 @@ def url_quote(obj: t.Any, charset: str = "utf-8", for_qs: bool = False) -> str:
     return rv
 
 
-def unicode_urlencode(obj: t.Any, charset: str = "utf-8", for_qs: bool = False) -> str:
+def unicode_urlencode(obj: t.Any,
+                      charset: str = "utf-8",
+                      for_qs: bool = False) -> str:
     import warnings
 
     warnings.warn(
@@ -529,7 +523,7 @@ class LRUCache:
         self._postinit()
 
     def __getnewargs__(self) -> t.Tuple:
-        return (self.capacity,)
+        return (self.capacity, )
 
     def copy(self) -> "LRUCache":
         """Return a shallow copy of the instance."""
@@ -685,8 +679,10 @@ def select_autoescape(
 
     .. versionadded:: 2.9
     """
-    enabled_patterns = tuple(f".{x.lstrip('.').lower()}" for x in enabled_extensions)
-    disabled_patterns = tuple(f".{x.lstrip('.').lower()}" for x in disabled_extensions)
+    enabled_patterns = tuple(f".{x.lstrip('.').lower()}"
+                             for x in enabled_extensions)
+    disabled_patterns = tuple(f".{x.lstrip('.').lower()}"
+                              for x in disabled_extensions)
 
     def autoescape(template_name: t.Optional[str]) -> bool:
         if template_name is None:
@@ -701,9 +697,9 @@ def select_autoescape(
     return autoescape
 
 
-def htmlsafe_json_dumps(
-    obj: t.Any, dumps: t.Optional[t.Callable[..., str]] = None, **kwargs: t.Any
-) -> markupsafe.Markup:
+def htmlsafe_json_dumps(obj: t.Any,
+                        dumps: t.Optional[t.Callable[..., str]] = None,
+                        **kwargs: t.Any) -> markupsafe.Markup:
     """Serialize an object to a string of JSON with :func:`json.dumps`,
     then replace HTML-unsafe characters with Unicode escapes and mark
     the result safe with :class:`~markupsafe.Markup`.
@@ -733,12 +729,8 @@ def htmlsafe_json_dumps(
         dumps = json.dumps
 
     return markupsafe.Markup(
-        dumps(obj, **kwargs)
-        .replace("<", "\\u003c")
-        .replace(">", "\\u003e")
-        .replace("&", "\\u0026")
-        .replace("'", "\\u0027")
-    )
+        dumps(obj, **kwargs).replace("<", "\\u003c").replace(
+            ">", "\\u003e").replace("&", "\\u0026").replace("'", "\\u0027"))
 
 
 class Cycler:
@@ -812,7 +804,6 @@ class Joiner:
 class Namespace:
     """A namespace object that can hold arbitrary attributes.  It may be
     initialized from a dictionary or with keyword arguments."""
-
     def __init__(*args: t.Any, **kwargs: t.Any) -> None:  # noqa: B902
         self, args = args[0], args[1:]
         self.__attrs = dict(*args, **kwargs)

@@ -15,8 +15,7 @@ async def make_aiter(iter):
 def mark_dualiter(parameter, factory):
     def decorator(f):
         return pytest.mark.parametrize(
-            parameter, [lambda: factory(), lambda: make_aiter(factory())]
-        )(f)
+            parameter, [lambda: factory(), lambda: make_aiter(factory())])(f)
 
     return decorator
 
@@ -36,19 +35,29 @@ def test_first(env_async, foo):
 @mark_dualiter(
     "items",
     lambda: [
-        {"foo": 1, "bar": 2},
-        {"foo": 2, "bar": 3},
-        {"foo": 1, "bar": 1},
-        {"foo": 3, "bar": 4},
+        {
+            "foo": 1,
+            "bar": 2
+        },
+        {
+            "foo": 2,
+            "bar": 3
+        },
+        {
+            "foo": 1,
+            "bar": 1
+        },
+        {
+            "foo": 3,
+            "bar": 4
+        },
     ],
 )
 def test_groupby(env_async, items):
-    tmpl = env_async.from_string(
-        """
+    tmpl = env_async.from_string("""
     {%- for grouper, list in items()|groupby('foo') -%}
         {{ grouper }}{% for x in list %}: {{ x.foo }}, {{ x.bar }}{% endfor %}|
-    {%- endfor %}"""
-    )
+    {%- endfor %}""")
     assert tmpl.render(items=items).split("|") == [
         "1: 1, 2: 1, 1",
         "2: 2, 3",
@@ -59,12 +68,10 @@ def test_groupby(env_async, items):
 
 @mark_dualiter("items", lambda: [("a", 1), ("a", 2), ("b", 1)])
 def test_groupby_tuple_index(env_async, items):
-    tmpl = env_async.from_string(
-        """
+    tmpl = env_async.from_string("""
     {%- for grouper, list in items()|groupby(0) -%}
         {{ grouper }}{% for x in list %}:{{ x.1 }}{% endfor %}|
-    {%- endfor %}"""
-    )
+    {%- endfor %}""")
     assert tmpl.render(items=items) == "a:1:2|b:1|"
 
 
@@ -81,12 +88,10 @@ def make_articles():
 
 @mark_dualiter("articles", make_articles)
 def test_groupby_multidot(env_async, articles):
-    tmpl = env_async.from_string(
-        """
+    tmpl = env_async.from_string("""
     {%- for year, list in articles()|groupby('date.year') -%}
         {{ year }}{% for x in list %}[{{ x.title }}]{% endfor %}|
-    {%- endfor %}"""
-    )
+    {%- endfor %}""")
     assert tmpl.render(articles=articles).split("|") == [
         "1970[aha][interesting][really?]",
         "1971[totally not]",
@@ -173,7 +178,8 @@ def test_map_sum(env_async):  # async map + async filter
 
 @mark_dualiter("users", make_users)
 def test_attribute_map(env_async, users):
-    tmpl = env_async.from_string('{{ users()|map(attribute="name")|join("|") }}')
+    tmpl = env_async.from_string(
+        '{{ users()|map(attribute="name")|join("|") }}')
     assert tmpl.render(users=users) == "john|jane|mike"
 
 
@@ -196,16 +202,23 @@ def test_sum_attributes(env_async, items):
 
 def test_sum_attributes_nested(env_async):
     tmpl = env_async.from_string("""{{ values|sum('real.value') }}""")
-    assert (
-        tmpl.render(
-            values=[
-                {"real": {"value": 23}},
-                {"real": {"value": 1}},
-                {"real": {"value": 18}},
-            ]
-        )
-        == "42"
-    )
+    assert (tmpl.render(values=[
+        {
+            "real": {
+                "value": 23
+            }
+        },
+        {
+            "real": {
+                "value": 1
+            }
+        },
+        {
+            "real": {
+                "value": 18
+            }
+        },
+    ]) == "42")
 
 
 def test_sum_attributes_tuple(env_async):
@@ -216,13 +229,10 @@ def test_sum_attributes_tuple(env_async):
 @mark_dualiter("items", lambda: range(10))
 def test_slice(env_async, items):
     tmpl = env_async.from_string(
-        "{{ items()|slice(3)|list }}|{{ items()|slice(3, 'X')|list }}"
-    )
+        "{{ items()|slice(3)|list }}|{{ items()|slice(3, 'X')|list }}")
     out = tmpl.render(items=items)
-    assert out == (
-        "[[0, 1, 2, 3], [4, 5, 6], [7, 8, 9]]|"
-        "[[0, 1, 2, 3], [4, 5, 6, 'X'], [7, 8, 9, 'X']]"
-    )
+    assert out == ("[[0, 1, 2, 3], [4, 5, 6], [7, 8, 9]]|"
+                   "[[0, 1, 2, 3], [4, 5, 6, 'X'], [7, 8, 9, 'X']]")
 
 
 def test_custom_async_filter(env_async):
@@ -230,7 +240,8 @@ def test_custom_async_filter(env_async):
         return str(val)
 
     env_async.filters["customfilter"] = customfilter
-    tmpl = env_async.from_string("{{ 'static'|customfilter }} {{ arg|customfilter }}")
+    tmpl = env_async.from_string(
+        "{{ 'static'|customfilter }} {{ arg|customfilter }}")
     out = tmpl.render(arg="dynamic")
     assert out == "static dynamic"
 
@@ -247,7 +258,6 @@ def test_custom_async_iteratable_filter(env_async, items):
 
     env_async.filters["customfilter"] = customfilter
     tmpl = env_async.from_string(
-        "{{ items()|customfilter }} .. {{ [3, 4, 5, 6]|customfilter }}"
-    )
+        "{{ items()|customfilter }} .. {{ [3, 4, 5, 6]|customfilter }}")
     out = tmpl.render(items=items)
     assert out == "0,1,2 .. 3,4,5"

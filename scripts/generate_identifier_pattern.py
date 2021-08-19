@@ -59,8 +59,8 @@ def main():
     """
     pattern = build_pattern(collapse_ranges(get_characters()))
     filename = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "src", "jinja2", "_identifier.py")
-    )
+        os.path.join(os.path.dirname(__file__), "..", "src", "jinja2",
+                     "_identifier.py"))
 
     with open(filename, "w", encoding="utf8") as f:
         f.write("import re\n\n")

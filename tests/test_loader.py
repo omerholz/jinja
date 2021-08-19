@@ -12,9 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from jinja2 import Environment
-from jinja2 import loaders
-from jinja2 import PackageLoader
+from jinja2 import Environment, PackageLoader, loaders
 from jinja2.exceptions import TemplateNotFound
 from jinja2.loaders import split_template_path
 
@@ -141,8 +139,7 @@ class TestFileSystemLoader:
 
     def test_searchpath_as_list_including_pathlib(self):
         filesystem_loader = loaders.FileSystemLoader(
-            ["/tmp/templates", self.searchpath]
-        )
+            ["/tmp/templates", self.searchpath])
         env = Environment(loader=filesystem_loader)
         self._test_common(env)
 
@@ -183,7 +180,9 @@ class TestModuleLoader:
             os.close(fd)
         else:
             self.archive = tempfile.mkdtemp()
-        self.reg_env.compile_templates(self.archive, zip=zip, log_function=log.append)
+        self.reg_env.compile_templates(self.archive,
+                                       zip=zip,
+                                       log_function=log.append)
         self.mod_env = Environment(loader=loaders.ModuleLoader(self.archive))
         return "".join(log)
 
@@ -197,15 +196,11 @@ class TestModuleLoader:
 
     def test_log(self, prefix_loader):
         log = self.compile_down(prefix_loader)
-        assert (
-            'Compiled "a/foo/test.html" as '
-            "tmpl_a790caf9d669e39ea4d280d597ec891c4ef0404a" in log
-        )
+        assert ('Compiled "a/foo/test.html" as '
+                "tmpl_a790caf9d669e39ea4d280d597ec891c4ef0404a" in log)
         assert "Finished compiling templates" in log
-        assert (
-            'Could not compile "a/syntaxerror.html": '
-            "Encountered unknown tag 'endif'" in log
-        )
+        assert ('Could not compile "a/syntaxerror.html": '
+                "Encountered unknown tag 'endif'" in log)
 
     def _test_common(self):
         tmpl1 = self.reg_env.get_template("a/test.html")
@@ -251,9 +246,10 @@ class TestModuleLoader:
 
     def test_choice_loader(self, prefix_loader):
         self.compile_down(prefix_loader)
-        self.mod_env.loader = loaders.ChoiceLoader(
-            [self.mod_env.loader, loaders.DictLoader({"DICT_SOURCE": "DICT_TEMPLATE"})]
-        )
+        self.mod_env.loader = loaders.ChoiceLoader([
+            self.mod_env.loader,
+            loaders.DictLoader({"DICT_SOURCE": "DICT_TEMPLATE"})
+        ])
         tmpl1 = self.mod_env.get_template("a/test.html")
         assert tmpl1.render() == "BAR"
         tmpl2 = self.mod_env.get_template("DICT_SOURCE")
@@ -261,12 +257,12 @@ class TestModuleLoader:
 
     def test_prefix_loader(self, prefix_loader):
         self.compile_down(prefix_loader)
-        self.mod_env.loader = loaders.PrefixLoader(
-            {
-                "MOD": self.mod_env.loader,
-                "DICT": loaders.DictLoader({"test.html": "DICT_TEMPLATE"}),
-            }
-        )
+        self.mod_env.loader = loaders.PrefixLoader({
+            "MOD":
+            self.mod_env.loader,
+            "DICT":
+            loaders.DictLoader({"test.html": "DICT_TEMPLATE"}),
+        })
         tmpl1 = self.mod_env.get_template("MOD/a/test.html")
         assert tmpl1.render() == "BAR"
         tmpl2 = self.mod_env.get_template("DICT/test.html")
@@ -297,9 +293,8 @@ def package_dir_loader(monkeypatch):
     return PackageLoader("res")
 
 
-@pytest.mark.parametrize(
-    ("template", "expect"), [("foo/test.html", "FOO"), ("test.html", "BAR")]
-)
+@pytest.mark.parametrize(("template", "expect"), [("foo/test.html", "FOO"),
+                                                  ("test.html", "BAR")])
 def test_package_dir_source(package_dir_loader, template, expect):
     source, name, up_to_date = package_dir_loader.get_source(None, template)
     assert source.rstrip() == expect
@@ -320,9 +315,8 @@ def package_zip_loader(monkeypatch):
     return PackageLoader("t_pack")
 
 
-@pytest.mark.parametrize(
-    ("template", "expect"), [("foo/test.html", "FOO"), ("test.html", "BAR")]
-)
+@pytest.mark.parametrize(("template", "expect"), [("foo/test.html", "FOO"),
+                                                  ("test.html", "BAR")])
 def test_package_zip_source(package_zip_loader, template, expect):
     source, name, up_to_date = package_zip_loader.get_source(None, template)
     assert source.rstrip() == expect
@@ -336,7 +330,9 @@ def test_package_zip_source(package_zip_loader, template, expect):
     raises=TypeError,
 )
 def test_package_zip_list(package_zip_loader):
-    assert package_zip_loader.list_templates() == ["foo/test.html", "test.html"]
+    assert package_zip_loader.list_templates() == [
+        "foo/test.html", "test.html"
+    ]
 
 
 def test_pep_451_import_hook():

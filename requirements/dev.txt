@@ -125,9 +125,10 @@ virtualenv==20.4.6
     # via
     #   pre-commit
     #   tox
-wheel==0.36.2
+wheel==0.38.0
     # via pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
 # setuptools
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
